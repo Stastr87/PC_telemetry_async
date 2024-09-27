@@ -1,0 +1,6 @@
+env/
+log/
+telemetry/
+auth.py
+config.py
+test.py
