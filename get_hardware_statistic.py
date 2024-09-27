@@ -7,9 +7,7 @@
 import os
 import logging
 from sys import argv
-import numpy as np
 import pandas as pd
-import plotly
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
@@ -19,8 +17,9 @@ logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(m
 _, date = argv
 
 # Список сетевых интерфесов для построения графиков телеметрии, по-умолчанию оставить пустым
-#net_adapter_list = []
-net_adapter_list = ['Ethernet 2', 'Ethernet']
+# net_adapter_list = []
+net_adapter_list = []
+
 
 file_path = os.path.abspath(os.path.join('telemetry',date,'data.csv'))
 dataFrame = pd.read_csv(file_path,
@@ -33,7 +32,7 @@ if not net_adapter_list:
 x = dataFrame['time']
 y_cpu = dataFrame['cpu_usage']
 y_ram = dataFrame['ram_free']
-#y_ram = np.array(y_ram, dtype=float)
+
 
 # Сформируем количество графиков для отображения в зависимости от количества сетевых интерфейсов 
 graph_lines = len(net_adapter_list)+2

@@ -5,3 +5,9 @@ telemetry/
 auth.py
 config.py
 test.py
+**/__pycache__
+.pyc
+data_operation/__pycache__
+data_operation/__pycache__/
+hardware_monitor/__pycache__/__init__.cpython-310.pyc
+data_operation/__pycache__/__init__.cpython-310.pyc
