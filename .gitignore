@@ -1,11 +1,12 @@
-*.pyc
 env/
 log/
 telemetry/
 auth.py
 config.py
 test.py
+__pycache__
 **/__pycache__
+*.pyc
 .pyc
 data_operation/__pycache__
 data_operation/__pycache__/
