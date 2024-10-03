@@ -1,11 +1,9 @@
-import time
 import curses
-import random
+from tabulate import tabulate
 from datetime import datetime
-import csv
 import os
 from hardware_monitor import HardWareMonitor
-
+import data_operation
 
 def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     """
@@ -45,14 +43,14 @@ def get_hardware_telemerty():
     Этот код выполняется 5 секунд, если не передано другое значение в класс HardWareMonitor()
     Параметр monitor_period=5
     '''
-    # 
     data = HardWareMonitor()
-    return round(data.ram_free), round(data.cpu_usage)
+    network_usage = data.network_usage
+    # Сохраняем данные в CSV
+    data_operation.create_telemerty_data()
+    data_operation.update_telemerty_data(data)
 
-# def set_styles():
-#     ''' Применяет цветовые стили для модуля curses
-#     '''
-#     curses.init_pair(1, curses.COLOR_RED, curses.COLOR_WHITE)
+
+    return round(data.ram_free), round(data.cpu_usage), network_usage
 
 def draw(canvas):
     # Обычно приложения curses отключают автоматическое отображение клавиш на экране,
@@ -73,33 +71,59 @@ def draw(canvas):
         canvas.border()
         # Отключить мигающий курсор
         curses.curs_set(False)
-        hw_data = get_hardware_telemerty()
-      
-        
-        normilize_str = lambda x: str(x) if len(str(x)) > 1 else f'0{x}'
-        ram_data = hw_data[0]
-        otput_ram_info_str = f'RAM usage (RAM free {normilize_str(ram_data)}%)'
-        cpu_data = hw_data[1]
-        cpu_info_ouput_str = f'CPU usage {normilize_str(cpu_data)}%'
 
-        canvas.addstr(2, 2, otput_ram_info_str)
-        canvas.addstr (2,len(otput_ram_info_str)+2, print_progress_bar(100-ram_data, 100, length=30))
-        if ram_data<40:
-            canvas.addstr(2, 2, otput_ram_info_str, curses.color_pair(1))
-            canvas.addstr (2, len(otput_ram_info_str)+2, print_progress_bar(100-ram_data, 100, length=30))
+        #Получаем данные для отображения
+        ram_data, cpu_data, network_usage_data = get_hardware_telemerty()
         
-        canvas.addstr(3, 2, cpu_info_ouput_str)
-        canvas.addstr(3, len(otput_ram_info_str)+2, print_progress_bar(cpu_data, 100, length=30))
-        if cpu_data>16:
-            canvas.addstr(3, 2, cpu_info_ouput_str, curses.color_pair(1))
-            canvas.addstr(3, len(otput_ram_info_str)+2, print_progress_bar(cpu_data, 100, length=30))
+        #Подготавливаем строки для отображения на холсте
+        normilize_str = lambda x: str(x) if len(str(x)) > 1 else f'0{x}'
+        otput_ram_info_str = f'RAM usage (RAM free {normilize_str(ram_data)}%)'
+        cpu_info_ouput_str = f'CPU usage {normilize_str(cpu_data)}%'
         
-        canvas.addstr(1, 2, f'Current date/time')
-        canvas.addstr(1, len(otput_ram_info_str)+3, datetime.now().strftime('%d-%m-%Y %H:%M:%S'))
+        network_info = []
+        for net_adapter in network_usage_data:
+            if network_usage_data[net_adapter]['up']>1 or network_usage_data[net_adapter]['down']:
+                network_info.append([net_adapter,
+                                     round(network_usage_data[net_adapter]['down']*0.000008,2),
+                                     round(network_usage_data[net_adapter]['up']*0.000008,2)])
+
+        # Заполним холст данными
+        # Зададим значение главного отступа для всех строк main_offset
+        main_offset = 2
+        
+        canvas.addstr(1, 15, 'Current date/time')
+        canvas.addstr(1, 15+(len('Current date/time'))+1, datetime.now().strftime('%d-%m-%Y %H:%M:%S'))
+
+        canvas.addstr(3, main_offset, otput_ram_info_str)
+        canvas.addstr (3,main_offset+len(otput_ram_info_str)+1, print_progress_bar(100-ram_data, 100, length=30))
+        
+        # Поменяем стиль, еслизначение будет переходить в критичную зону 
+        if ram_data<20:
+            canvas.addstr(3, main_offset, otput_ram_info_str, curses.color_pair(1))
+            canvas.addstr (3, main_offset+len(otput_ram_info_str)+1, print_progress_bar(100-ram_data, 100, length=30))
+        
+        canvas.addstr(4, main_offset, cpu_info_ouput_str)
+        canvas.addstr(4, main_offset+len(otput_ram_info_str)+1, print_progress_bar(cpu_data, 100, length=30))
+                
+        # Поменяем стиль, еслизначение будет переходить в критичную зону 
+        if cpu_data>85:
+            canvas.addstr(4, main_offset, cpu_info_ouput_str, curses.color_pair(1))
+            canvas.addstr(4, main_offset+len(otput_ram_info_str)+1, print_progress_bar(cpu_data, 100, length=30))
+        
+        # Добавим информацию о сетевых интерфейсов на холст
+        # Создаим таблицу затем разделим ее на строки для отображения
+        headers = ['Net adater', 'DOWNLOAD, Mbit/sec', 'UPLOAD, Mbit/sec']
+        table_object = tabulate(network_info, headers, tablefmt="github")
+        rows = table_object.split('\n')
+        for i in range(len(rows)):
+            canvas.addstr(i+6, main_offset, rows[i])
+
+
 
         canvas.refresh()
         # time.sleep(1)
         
+        # Обновление холста будет работать автоматически без ожидания нажатий клавиш
         canvas.nodelay(True)
         key = canvas.getch()
         
