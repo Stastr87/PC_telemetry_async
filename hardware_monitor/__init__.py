@@ -3,6 +3,11 @@ import psutil
 
 class HardWareMonitor():
     def __init__(self, monitor_period=5):
+        '''Init HardWareMonitor object
+
+        Arguments:
+        monitor_period - period (sec) to check hardware usege (default = 5)
+         '''
         self.monitor_period = monitor_period
         self.set_network_usage_and_cpu_usage()
         self.set_ram_free()
