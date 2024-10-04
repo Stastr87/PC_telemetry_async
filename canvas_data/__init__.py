@@ -89,5 +89,5 @@ def get_txt():
     map = get_canvas_data()
     txt = str()
     for block in map:
-          txt+=map[block]+'\n'
+          txt+=map[block]+'\n\n'
     return txt

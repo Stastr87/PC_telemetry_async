@@ -40,13 +40,14 @@ def draw(canvas):
         
         if width<min_width:
             canvas.addstr(1, 1, f'min widht {min_width}')
+            canvas.addstr(2, 1, f'cur widht {width}')
         
         else:
             for row in range(len(rows)):
-                if row==0 or row==1:
+                if row==0 or row==2:
                     canvas.addstr(row+1, main_offset+round(min_width/2)-round(len(rows[row])/2), rows[row])
                 else:
-                    canvas.addstr(row+3, main_offset, rows[row])
+                    canvas.addstr(row+1, main_offset, rows[row])
 
         canvas.refresh()
         # time.sleep(1)
