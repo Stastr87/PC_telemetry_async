@@ -1,6 +1,7 @@
 import curses, canvas_data
 from tabulate import tabulate
 from datetime import datetime
+import asyncio
 
 def draw(canvas):
     # Обычно приложения curses отключают автоматическое отображение клавиш на экране,
