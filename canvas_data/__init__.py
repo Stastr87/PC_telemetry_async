@@ -55,7 +55,6 @@ def get_hardware_telemerty()->list:
     ram_free, cpu_usage, network_usage = None, None, None
 
     data = HardWareMonitor().to_dict()
-    print(data)
     if (data['ram_free'] and 
         data['cpu_usage'] and
         data['network_usage']):
@@ -82,7 +81,7 @@ def get_canvas_data()->dict:
     cur_date_time = f"Current date/time {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
     
     ram_data, cpu_data, network_usage_data = get_hardware_telemerty()
-    print(f'get_canvas_data() -> {ram_data, cpu_data, network_usage_data}')
+    # print(f'get_canvas_data() -> {ram_data, cpu_data, network_usage_data}')
         
     if not ram_data:
         ram_data = 0

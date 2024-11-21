@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from pprint import pprint
+# from pprint import pprint
 import time
 import csv
 
@@ -38,8 +38,6 @@ def update_telemerty_data_v2(data : dict, data_file='data.csv'):
 
     with open(file_path, mode="a", encoding='utf-8') as w_file:
         file_writer = csv.writer(w_file, delimiter = ",", lineterminator="\r")
-        pprint(f"{__name__} -> data['cpu_usage'][0]")
-        pprint(data['cpu_usage'])
         for net_adaptor in list(data['network_usage'].keys()):
             file_writer.writerow([datetime.now(),
                                   round(float(data['cpu_usage'])),

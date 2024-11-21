@@ -50,23 +50,21 @@ class HardWareMonitor():
         ''' Задает: 
             атрибут класса - нагрузка ЦП за указанный промежуток времени cpu_usage
         '''
-        print(f"get_cpu_usage called {time.strftime('%X')}")
+        # print(f"get_cpu_usage called {time.strftime('%X')}")
         # Статиска потребления ЦП требует временного лага
         
         # Получим данные по всем ядрам  
         cpu_usage = psutil.cpu_percent(interval=self.monitor_period,percpu=True)
         # И вернем максимальное значение
         cpu_usage = max(cpu_usage)
-        # cpu_usage = psutil.cpu_percent(interval=self.monitor_period)
-        print (f'{__name__} -> cpu_usage {cpu_usage}')
-        print(f"{__name__} -> get_cpu_usage finished {time.strftime('%X')}")
+ 
         return cpu_usage
 
     async def get_network_usage(self):
         ''' Задает:
             атрибут класса - статискика передачи данных всех сетевых интерфейсов network_usage
         '''
-        print(f"get_network_usage called {time.strftime('%X')}")
+        # print(f"get_network_usage called {time.strftime('%X')}")
         # Статистика сети
         previous_state = {"data":psutil.net_io_counters(pernic=True),
                           "timestamp":datetime.now()}
@@ -86,6 +84,6 @@ class HardWareMonitor():
             network_usage.update({adapter:{"up":up,
                                            "down":down}})
 
-        print(f'network_usage: {network_usage}')
-        print(f"get_network_usage finished {time.strftime('%X')}")
+        # print(f'network_usage: {network_usage}')
+        # print(f"get_network_usage finished {time.strftime('%X')}")
         return network_usage
