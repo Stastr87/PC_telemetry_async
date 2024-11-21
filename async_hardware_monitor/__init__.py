@@ -14,6 +14,7 @@ class HardWareMonitor():
         self.set_ram_free()
         self.cpu_usage = None
         self.network_usage = None
+        
         # тут запускаются асинхронно функции которые требуют некоторое время для своего выполнения
         asyncio.run(self.wait_data())
         
@@ -27,6 +28,7 @@ class HardWareMonitor():
     async def wait_data(self):
         ''' Запускает задачи которые требуют времени ожидания
         '''
+        # Альтернативное решение
         # tasks = []
         # tasks.append(asyncio.create_task(self.get_network_usage()))
         # tasks.append(asyncio.create_task(self.get_cpu_usage()))
@@ -37,8 +39,6 @@ class HardWareMonitor():
         self.network_usage = await asyncio.gather(get_network_usage_task)
         self.cpu_usage = await asyncio.gather(get_cpu_usage_task)
 
-        # self.network_usage = await self.get_network_usage()
-        # self.cpu_usage = await self.get_cpu_usage()
     
     def set_ram_free(self):
         ''' Задает:
@@ -78,12 +78,10 @@ class HardWareMonitor():
             up_diff = getattr(current_state["data"][adapter], 'bytes_sent')-getattr(previous_state["data"][adapter], 'bytes_sent')
             time_diff = current_state["timestamp"] - previous_state["timestamp"]
             time_diff_in_seconds = time_diff.total_seconds()
-            #Подсчитали колличество байт за указанный промежуток
+            # Подсчитали колличество байт за указанный промежуток
             down = down_diff / time_diff_in_seconds
             up = up_diff / time_diff_in_seconds
             network_usage.update({adapter:{"up":up,
                                            "down":down}})
 
-        # print(f'network_usage: {network_usage}')
-        # print(f"get_network_usage finished {time.strftime('%X')}")
         return network_usage
