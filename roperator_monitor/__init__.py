@@ -23,7 +23,7 @@ class RoperatorMonitor():
             self.token = None
 
 
-    def close_connection(self):
+    def __del__(self):
         '''Закрывает соедиение c сервером Оператор
         '''
         try:

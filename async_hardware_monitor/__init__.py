@@ -4,11 +4,11 @@ import asyncio
 import time
 
 class HardWareMonitor():
-    def __init__(self, monitor_period=5):
+    def __init__(self, monitor_period=3):
         '''Init HardWareMonitor object
 
         Arguments:
-        monitor_period - period (sec) to check hardware usege (default = 5)
+        monitor_period - period (sec) to check hardware usege (default = 2)
          '''
         self.monitor_period = monitor_period
         self.set_ram_free()
@@ -20,8 +20,8 @@ class HardWareMonitor():
 
     def to_dict(self):
         return {"ram_free":self.ram_free,
-                "cpu_usage":self.cpu_usage,
-                "network_usage":self.network_usage}
+                "cpu_usage":self.cpu_usage[0],
+                "network_usage":self.network_usage[0]}
 
     
     async def wait_data(self):
@@ -36,9 +36,6 @@ class HardWareMonitor():
         get_cpu_usage_task = asyncio.create_task(self.get_cpu_usage())
         self.network_usage = await asyncio.gather(get_network_usage_task)
         self.cpu_usage = await asyncio.gather(get_cpu_usage_task)
-
-
-
 
         # self.network_usage = await self.get_network_usage()
         # self.cpu_usage = await self.get_cpu_usage()
@@ -55,12 +52,15 @@ class HardWareMonitor():
         '''
         print(f"get_cpu_usage called {time.strftime('%X')}")
         # Статиска потребления ЦП требует временного лага
-        # await asyncio.sleep(self.monitor_period)
-        cpu_usage = psutil.cpu_percent(interval=self.monitor_period)
-        print (f'cpu_usage {cpu_usage}')
-        print(f"get_cpu_usage finished {time.strftime('%X')}")
+        
+        # Получим данные по всем ядрам  
+        cpu_usage = psutil.cpu_percent(interval=self.monitor_period,percpu=True)
+        # И вернем максимальное значение
+        cpu_usage = max(cpu_usage)
+        # cpu_usage = psutil.cpu_percent(interval=self.monitor_period)
+        print (f'{__name__} -> cpu_usage {cpu_usage}')
+        print(f"{__name__} -> get_cpu_usage finished {time.strftime('%X')}")
         return cpu_usage
-
 
     async def get_network_usage(self):
         ''' Задает:
@@ -86,6 +86,6 @@ class HardWareMonitor():
             network_usage.update({adapter:{"up":up,
                                            "down":down}})
 
-        print(f'network_usage::: {network_usage}')
+        print(f'network_usage: {network_usage}')
         print(f"get_network_usage finished {time.strftime('%X')}")
         return network_usage

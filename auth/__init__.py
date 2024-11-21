@@ -12,6 +12,8 @@ logging.basicConfig(level=logging.INFO,
                     )
 
 class Auth():
+    '''Авторизация на сервере Р-Оператор
+    '''
     def __init__(self, host, login, password):
         self.host = host
         self.login = login
@@ -41,8 +43,9 @@ class Auth():
                             "currentServer": "Some Error with JSON object"}
         self.token = responseData['accessToken'] 
 
-    def logout(self):
+    def __del__(self):
         '''/v1/authorization/logout
+        
         Запрос закрытия сессии 
         '''
         method = '/v1/authorization/logout'
