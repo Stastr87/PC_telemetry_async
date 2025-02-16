@@ -1,7 +1,5 @@
 import curses, canvas_data
-from tabulate import tabulate
-from datetime import datetime
-import asyncio
+
 
 def draw(canvas):
     # Обычно приложения curses отключают автоматическое отображение клавиш на экране,
@@ -31,17 +29,17 @@ def draw(canvas):
         # Получим данные для отображения на холсте
         display_data = canvas_data.get_txt()
 
-        # Построчно назместим в окне
+        # Построчно разместим в окне
         rows = display_data.split('\n')
         
         # Для того что бы окно не падало с ошибкой добавим заглушку для отображения
-        # Найдем самую длинную строку
+        # найдем самую длинную строку
         row_len_list = list(map(lambda x: len(x),rows))
         min_width = max(row_len_list)
         
         if width<min_width:
-            canvas.addstr(1, 1, f'min widht {min_width}')
-            canvas.addstr(2, 1, f'cur widht {width}')
+            canvas.addstr(1, 1, f'min width {min_width}')
+            canvas.addstr(2, 1, f'cur width {width}')
         
         else:
             for row in range(len(rows)):

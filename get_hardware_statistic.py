@@ -5,13 +5,13 @@
 '''
 
 import os
-import logging
+
 from sys import argv
 import pandas as pd
+import plotly
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s')
 
 #Получаем аргументы из консоли
 _, date = argv
@@ -109,7 +109,7 @@ fig.update_yaxes(title='%',
                  zerolinecolor='orange', 
                  row=2)
 
-# Добавим графики сетевых интерфейсов в кординатную область
+# Добавим графики сетевых интерфейсов в координатную область
 key_list = list(net_adapters_graph_objects.keys())
 for i in range(len(key_list)):
     fig.add_trace(net_adapters_graph_objects[key_list[i]][0], 

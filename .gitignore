@@ -15,3 +15,5 @@ data_operation/__pycache__/__init__.cpython-310.pyc
 data_example.json
 PC_telemerty.zip
 .DS_Store
+/logs/
+/tempdir/

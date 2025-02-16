@@ -2,7 +2,7 @@ import os, sys, socket
 
 new_work_dir = os.path.abspath(os.path.join(__file__ ,"../.."))
 sys.path.append(new_work_dir)
-from datetime import datetime
+from datetime import datetime, timezone
 from tabulate import tabulate
 from async_hardware_monitor import HardWareMonitor
 import data_operation
@@ -40,17 +40,16 @@ def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1
 #             text_list.append(" ".join(line))
 #     return text_list
 
-def get_hardware_telemerty()->list:
-    '''Сохраняет CSV файл с данными по потреблению ресурсов ПК
-    
+def get_hardware_telemetry()->tuple:
+    """Сохраняет CSV файл с данными по потреблению ресурсов ПК
+
     Этот код выполняется 5 секунд, если не передано другое значение в класс HardWareMonitor()
     Параметр monitor_period=5
 
     return:
     ram_free - данные по свободной памяти ОЗУ, %
-    cpu_usage - потребление ресурсов ЦП, % 
-    network_usage - словарь с данными по трафику на сетевых интерфейсах
-    '''
+    cpu_usage - потребление ресурсов ЦП, %
+    network_usage - словарь с данными по трафику на сетевых интерфейсах"""
     
     ram_free, cpu_usage, network_usage = None, None, None
 
@@ -61,8 +60,8 @@ def get_hardware_telemerty()->list:
         network_usage = data['network_usage']
         
         # Сохраняем данные в CSV
-        data_operation.create_telemerty_data()
-        data_operation.update_telemerty_data_v2(data)
+        data_operation.create_telemetry_data()
+        data_operation.update_telemetry_data_v2(data)
         
         ram_free, cpu_usage, network_usage = (round(data['ram_free']), 
                                               round(data['cpu_usage']), 
@@ -71,29 +70,29 @@ def get_hardware_telemerty()->list:
     return ram_free, cpu_usage, network_usage
 
 def get_canvas_data()->dict:
-    '''Формирует данные для отображения в консоли
+    """Формирует данные для отображения в консоли
 
     return:
-    display_map - словарь со строками данных
-    '''
+    display_map - словарь со строками данных"""
     
     pc_name = f'Host name: {socket.gethostname()}' # Получим имя ПК
-    cur_date_time = f"Current date/time {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
+    cur_date_time = f"Current date/time {datetime.now(timezone.utc).astimezone().strftime('%d-%m-%Y %H:%M:%S %z')}"
+    # cur_date_time = f"Current date/time {datetime.now(timezone.utc).astimezone().isoformat()}"
     
-    ram_data, cpu_data, network_usage_data = get_hardware_telemerty()
+    ram_data, cpu_data, network_usage_data = get_hardware_telemetry()
     # print(f'get_canvas_data() -> {ram_data, cpu_data, network_usage_data}')
         
     if not ram_data:
         ram_data = 0
     
     #Подготавливаем строки для отображения на холсте
-    normilize_str = lambda x: str(x) if len(str(x)) > 1 else f'0{x}'
-    otput_ram_info_str = f'RAM usage (RAM free {normilize_str(ram_data)}%)   {print_progress_bar(100-ram_data, 100, length=30)}'
+    normalize_str = lambda x: str(x) if len(str(x)) > 1 else f'0{x}'
+    output_ram_info_str = f'RAM usage (RAM free {normalize_str(ram_data)}%)   {print_progress_bar(100-ram_data, 100, length=30)}'
         
     if not cpu_data:
         cpu_data = 0
     
-    cpu_info_ouput_str = f'CPU usage {normilize_str(cpu_data)}%              {print_progress_bar(cpu_data, 100, length=30)}'
+    cpu_info_output_str = f'CPU usage {normalize_str(cpu_data)}%              {print_progress_bar(cpu_data, 100, length=30)}'
         
     if network_usage_data:
         network_info = []
@@ -108,26 +107,25 @@ def get_canvas_data()->dict:
         # Условно разделим холст на блоки 
         display_map={"pc_name": pc_name, 
                      "cur_date_time":cur_date_time,
-                     "ram_info":otput_ram_info_str,
-                     "cpu_info":cpu_info_ouput_str,
+                     "ram_info":output_ram_info_str,
+                     "cpu_info":cpu_info_output_str,
                      "net_usage":net_adapters_table_object
                     }
         # Если данные по сети не получены, то исключаем их из списка блоков
         if not network_usage_data:
             display_map={"pc_name": pc_name, 
                          "cur_date_time":cur_date_time,
-                         "ram_info":otput_ram_info_str,
-                         "cpu_info":cpu_info_ouput_str,
+                         "ram_info":output_ram_info_str,
+                         "cpu_info":cpu_info_output_str,
                         }
      
         return display_map
 
 def get_txt():
-    '''Возвращает данные в виде строк
-    '''
+    """Возвращает данные в виде строк"""
 
-    map = get_canvas_data()
+    data_map = get_canvas_data()
     txt = str()
-    for block in map:
-          txt+=map[block]+'\n\n'
+    for block in data_map:
+          txt+=data_map[block]+'\n\n'
     return txt
