@@ -7,7 +7,7 @@ from datetime import datetime
 from os import mkdir
 
 import psutil
-from flask import request, send_file
+from flask import request, send_file, after_this_request
 from flask_restx import Resource, Namespace
 from flask_cors import cross_origin
 
@@ -35,6 +35,9 @@ my_logger = logger_instance.logger
 telemetry_ns = Namespace('telemetry', description='access to host telemetry data')
 
 
+
+
+
 @telemetry_ns.route("/cpu_usage_to_json")
 @telemetry_ns.doc(params={"start_time":{"description":"start of request period",
                                         "type": "str"},
@@ -45,37 +48,35 @@ class CPUUsageToJson(Resource):
     #TODO Удалять временный файл после отправки по запросу
     @cross_origin()
     @telemetry_ns.doc('return json file contained cpu usage data')
-    # @telemetry_ns.expect(telemetry_ns.model('cpu_usage_data_post', PERIOD_REQUEST_DATA))
-    # @telemetry_ns.marshal_with(telemetry_ns.model('cpu_usage_schema', RAW_DATA_SCHEMA))
     def get(self):
         start = request.args.get('start_time')
         end = request.args.get('end_time')
-
+        tempdir = tempfile.mkdtemp()
+        temp_file = tempfile.NamedTemporaryFile(mode='w+t',
+                                                suffix='.json',
+                                                delete=False,
+                                                dir=tempdir)
         try:
             if datetime.fromisoformat(start)>datetime.fromisoformat(end):
                 raise ValueError("Время начала периода позже его окончания")
         except ValueError as val_err:
-            my_logger.error(f"{request.url} (POST) ValueError: \n{val_err}")
+            my_logger.error(f"{request.url} ValueError: \n{val_err}")
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
         try:
             df = DataObject(start, end)
             return_data = df.get_cpu_usage()
-            tempdir = tempfile.mkdtemp()
-            fp = tempfile.NamedTemporaryFile(mode='w+t',
-                                             suffix='.json',
-                                             delete = False,
-                                             dir=tempdir)
-            fp.write(json.dumps(return_data))
 
-            resp = send_file(fp.name, as_attachment=True)
-            file_remover = FileRemover()
-            fp.close()
-            file_remover.cleanup_once_done(resp, tempdir)
+            temp_file.write(json.dumps(return_data))
+            resp = send_file(temp_file.name, as_attachment=True)
+            temp_file.close()
+            print(tempdir, temp_file.name)
             return resp, 200
 
         except Exception as err:
-            my_logger.error(f"{request.url} (POST) error: \n{err}")
+            my_logger.error(f"{request.url} error: \n{err}")
             telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
+
+
 
 
 @telemetry_ns.route("/cpu_usage")
@@ -87,8 +88,6 @@ class CPUUsage(Resource):
     """return cpu usage data with query in params"""
     @cross_origin()
     @telemetry_ns.doc('return cpu usage data')
-    # @telemetry_ns.expect(telemetry_ns.model('cpu_usage_data_post', PERIOD_REQUEST_DATA))
-    # @telemetry_ns.marshal_with(telemetry_ns.model('cpu_usage_schema', RAW_DATA_SCHEMA))
     def get(self):
         start = request.args.get('start_time')
         end = request.args.get('end_time')
@@ -97,7 +96,7 @@ class CPUUsage(Resource):
             if datetime.fromisoformat(start)>datetime.fromisoformat(end):
                 raise ValueError("Время начала периода позже его окончания")
         except ValueError as val_err:
-            my_logger.error(f"{request.url} (POST) ValueError: \n{val_err}")
+            my_logger.error(f"{request.url} ValueError: \n{val_err}")
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
         try:
             df = DataObject(start, end)
@@ -105,7 +104,7 @@ class CPUUsage(Resource):
             return_body = return_data
             return return_body, 200
         except Exception as err:
-            my_logger.error(f"{request.url} (POST) error: \n{err}")
+            my_logger.error(f"{request.url} error: \n{err}")
             telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
 
 
