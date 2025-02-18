@@ -60,26 +60,28 @@ class CPUUsageToJson(Resource):
     def get(self):
         start = request.args.get('start_time')
         end = request.args.get('end_time')
-        tempdir = tempfile.mkdtemp()
         temp_file = tempfile.NamedTemporaryFile(mode='w+t',
                                                 suffix='.json',
-                                                delete=False,
-                                                dir=tempdir)
+                                                delete=False)
         try:
             if datetime.fromisoformat(start)>datetime.fromisoformat(end):
                 raise ValueError("Время начала периода позже его окончания")
         except ValueError as val_err:
             my_logger.error(f"{request.url} ValueError: \n{val_err}")
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
+
         try:
             df = DataObject(start, end)
             return_data = df.get_cpu_usage()
-
             temp_file.write(json.dumps(return_data))
-            resp = send_file(temp_file.name, as_attachment=True)
             temp_file.close()
-            print(tempdir, temp_file.name)
-            return resp, 200
+            if not os.path.isfile(temp_file.name):
+                raise FileNotFoundError
+
+            return send_file(temp_file.name, as_attachment=True), 200
+
+        except FileNotFoundError:
+            return 204
 
         except Exception as err:
             my_logger.error(f"{request.url} error: \n{err}")
