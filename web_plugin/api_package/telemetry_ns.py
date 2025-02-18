@@ -30,6 +30,7 @@ logger_instance = CustomLogger(logger_name="telemetry_ns",
 my_logger = logger_instance.logger
 
 def get_python_path():
+    """return python path according OS type"""
     python_path = None
     if DOCKER_MODE:
         raise ValueError()
@@ -42,7 +43,6 @@ def get_python_path():
     elif platform == "win32":
         # Windows
         python_path = PATH_TO_PYTHON_EXE
-
     return python_path
 
 telemetry_ns = Namespace('telemetry', description='access to host telemetry data')
