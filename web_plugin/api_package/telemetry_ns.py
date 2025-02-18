@@ -32,10 +32,24 @@ logger_instance = CustomLogger(logger_name="telemetry_ns",
                                 level="debug")
 my_logger = logger_instance.logger
 
+def get_python_path():
+    python_path = None
+    if DOCKER_MODE:
+        raise ValueError()
+    elif platform == "linux" or platform == "linux2":
+        # Linux OS
+        python_path = PATH_TO_PYTHON_LINUX
+    elif platform == "darwin":
+        # MacOS
+        python_path = PATH_TO_PYTHON_LINUX
+    elif platform == "win32":
+        # Windows
+        python_path = PATH_TO_PYTHON_EXE
+
+    return python_path
+
+
 telemetry_ns = Namespace('telemetry', description='access to host telemetry data')
-
-
-
 
 
 @telemetry_ns.route("/cpu_usage_to_json")
@@ -189,7 +203,15 @@ class RunTelemetryCollection(Resource):
     def get(self):
         """starting collecting telemetry data
         """
-        python_path = os.path.join('C:\\', '.venv', 'python312', 'Scripts', 'python.exe')
+        try:
+            python_path = get_python_path()
+        except ValueError:
+            return_body = {"message": "collecting telemetry data fail. Docker mode enabled. Use external telemetry collection lib",
+                           "error": True,
+                           "data": None}
+            return return_body, 405
+        
+        
         my_logger.debug(python_path)
         proc = subprocess.Popen([python_path, 'save_telemetry_data.py'],
                                 stdout=subprocess.PIPE,
