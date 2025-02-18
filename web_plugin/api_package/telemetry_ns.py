@@ -1,27 +1,24 @@
 import json
-
-
 import tempfile
 import subprocess
 from datetime import datetime
 from os import mkdir
 
 import psutil
-from flask import request, send_file, after_this_request
+from flask import request, send_file
 from flask_restx import Resource, Namespace
 from flask_cors import cross_origin
 
-from env.default_env import PATH_TO_PYTHON_EXE, LOG_DIR, PATH_TO_PYTHON_LINUX, DOCKER_MODE
+from env.default_env import PATH_TO_PYTHON_EXE, LOG_DIR, DOCKER_MODE, PATH_TO_PYTHON_LINUX
 from stored_data_operation import DataObject
-from utils.file_remover import FileRemover
 
 from web_plugin.api_package.schemas import RUN_TELEMETRY_COLLECTION_SCHEMA_GET, STOP_TELEMETRY_COLLECTION_SCHEMA_GET, \
     PERIOD_REQUEST_DATA, COMMON_RETURN_SCHEMA
 
+from sys import platform, path
 import os
-import sys
 new_work_dir = os.path.abspath(os.path.join(__file__, "../../.."))
-sys.path.append(new_work_dir)
+path.append(new_work_dir)
 
 from utils.custom_logger import CustomLogger
 
@@ -48,9 +45,7 @@ def get_python_path():
 
     return python_path
 
-
 telemetry_ns = Namespace('telemetry', description='access to host telemetry data')
-
 
 @telemetry_ns.route("/cpu_usage_to_json")
 @telemetry_ns.doc(params={"start_time":{"description":"start of request period",
@@ -206,12 +201,13 @@ class RunTelemetryCollection(Resource):
         try:
             python_path = get_python_path()
         except ValueError:
-            return_body = {"message": "collecting telemetry data fail. Docker mode enabled. Use external telemetry collection lib",
-                           "error": True,
-                           "data": None}
+            return_body = {
+                "message": "collecting telemetry data fail. Docker mode enabled. Use external telemetry collection lib",
+                "error": True,
+                "data": None}
             return return_body, 405
-        
-        
+
+
         my_logger.debug(python_path)
         proc = subprocess.Popen([python_path, 'save_telemetry_data.py'],
                                 stdout=subprocess.PIPE,

@@ -1,3 +1,4 @@
+import os
 import shutil
 import weakref
 
@@ -11,5 +12,10 @@ class FileRemover(object):
 
     def _do_cleanup(self, wr):
         filepath = self.weak_references[wr]
+        if os.path.isfile(filepath):
+            with open(filepath, 'w') as file:
+                file.write('TTTTTTTTTT')
         print('Deleting %s' % filepath)
-        shutil.rmtree(filepath, ignore_errors=True)
+        # shutil.rmtree(filepath, ignore_errors=True)
+        # os.remove(filepath)
+        os.unlink(filepath)
