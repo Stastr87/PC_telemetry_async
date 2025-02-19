@@ -4,17 +4,18 @@
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, time
 import csv
 
 import pandas as pd
+from pandas.core.interchange.dataframe_protocol import DataFrame
 
 new_work_dir = os.path.abspath(os.path.join(__file__, "../.."))
 sys.path.append(new_work_dir)
 
 from utils.custom_logger import CustomLogger
 
-log_file_name = "return_hw_statistic.log"
+log_file_name = "stored_data_operation.log"
 logger_instance = CustomLogger(logger_name="stored_data_operation",
                                 dt_fmt='%H:%M:%S',
                                 file_path=os.path.join(new_work_dir,"logs", log_file_name),
@@ -31,12 +32,14 @@ class DataObject:
         self._dt_end = datetime.fromisoformat(self.end_time)
 
 
-    def get_temp_data_frame(self):
+    def get_temp_data_frame(self) -> DataFrame:
         """Return temp data frame according requested time period"""
+
         data_path = os.path.abspath(os.path.join(new_work_dir, 'telemetry'))
         dir_list = os.listdir(data_path)
         # Запишем данные во временный массив
         temp_data = []
+
         for dir_name in dir_list:
             stored_date = datetime.strptime(dir_name, '%d-%m-%Y')
             # Находим начальную дату
@@ -47,10 +50,20 @@ class DataObject:
             if stored_date.date() > self._dt_end.date():
                 break
         # Объединяем и возвращаем полученный DataFrame
-        result = pd.concat(temp_data)
-        # ТУТ ЕЩЕ НАДО ОТФИЛЬТРОВАТЬ ПО ВРЕМЕНИ
 
-        return result
+        result = pd.concat(temp_data)
+
+        result['pd_time'] = pd.to_datetime(result['time'])
+        start_moment = self.start_time
+        end_moment = self.end_time
+        return_pd = result[result['pd_time'].between(start_moment,end_moment)]
+        return return_pd
+
+    def get_ram_usage(self):
+        """Return ram usage data from temp DataFrame"""
+        df = self.get_temp_data_frame()
+        ram_df = df[['time', 'ram_free']]
+        return ram_df.values.tolist()
 
 
     def get_cpu_usage(self):

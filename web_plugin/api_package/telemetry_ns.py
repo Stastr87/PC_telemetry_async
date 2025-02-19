@@ -1,7 +1,7 @@
 import json
 import tempfile
 import subprocess
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import mkdir
 
 import psutil
@@ -47,6 +47,56 @@ def get_python_path():
 
 telemetry_ns = Namespace('telemetry', description='access to host telemetry data')
 
+@telemetry_ns.route("/ram_usage_to_json")
+@telemetry_ns.doc(params={"start_time":{"description":"start of request period",
+                                        "type": "str"},
+                          "end_time":{"description":"end of request period",
+                                      "type": "str"}})
+class RAMUsageToJson(Resource):
+    """return json file contained ram usage data with query in params"""
+    #TODO Удалять временный файл после отправки по запросу
+    @cross_origin()
+    @telemetry_ns.doc('return json file contained ram usage data')
+    def get(self):
+        start = request.args.get('start_time')
+        end = request.args.get('end_time')
+
+        if not start or not end:
+            start = datetime.now()-timedelta(days=1)
+            end = datetime.now()
+            start = start.isoformat()
+            end = end.isoformat()
+
+        temp_file = tempfile.NamedTemporaryFile(mode='w+t',
+                                                suffix='.json',
+                                                delete=False)
+        try:
+            if datetime.fromisoformat(start)>datetime.fromisoformat(end):
+                raise ValueError("Время начала периода позже его окончания")
+        except ValueError as val_err:
+            my_logger.error(f"{request.url} ValueError: \n{val_err}")
+            telemetry_ns.abort(400, f"ValueError {str(val_err)}")
+
+        try:
+            my_logger.debug(f'{__class__} start {start}')
+            my_logger.debug(f'{__class__} end {end}')
+            df = DataObject(start, end)
+            return_data = df.get_ram_usage()
+            temp_file.write(json.dumps(return_data))
+            temp_file.close()
+            if not os.path.isfile(temp_file.name):
+                raise FileNotFoundError
+
+            return send_file(temp_file.name, as_attachment=True), 200
+
+        except FileNotFoundError:
+            return 204
+
+        except Exception as err:
+            my_logger.error(f"{request.url} error: \n{err}",exc_info=True)
+            telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
+
+
 @telemetry_ns.route("/cpu_usage_to_json")
 @telemetry_ns.doc(params={"start_time":{"description":"start of request period",
                                         "type": "str"},
@@ -60,6 +110,11 @@ class CPUUsageToJson(Resource):
     def get(self):
         start = request.args.get('start_time')
         end = request.args.get('end_time')
+        if not start or end:
+            start = datetime.now()-timedelta(days=2)
+            start = start.isoformat()
+            end = datetime.now().isoformat()
+
         temp_file = tempfile.NamedTemporaryFile(mode='w+t',
                                                 suffix='.json',
                                                 delete=False)
@@ -86,9 +141,6 @@ class CPUUsageToJson(Resource):
         except Exception as err:
             my_logger.error(f"{request.url} error: \n{err}")
             telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
-
-
-
 
 @telemetry_ns.route("/cpu_usage")
 @telemetry_ns.doc(params={"start_time":{"description":"start of request period",
