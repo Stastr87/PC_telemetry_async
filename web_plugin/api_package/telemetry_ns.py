@@ -67,30 +67,25 @@ class RAMUsageToJson(Resource):
             start = start.isoformat()
             end = end.isoformat()
 
-        temp_file = tempfile.NamedTemporaryFile(mode='w+t',
-                                                suffix='.json',
-                                                delete=False)
         try:
             if datetime.fromisoformat(start)>datetime.fromisoformat(end):
                 raise ValueError("Время начала периода позже его окончания")
+
         except ValueError as val_err:
             my_logger.error(f"{request.url} ValueError: \n{val_err}")
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
 
         try:
-            my_logger.debug(f'{__class__} start {start}')
-            my_logger.debug(f'{__class__} end {end}')
+
             df = DataObject(start, end)
             return_data = df.get_ram_usage()
-            temp_file.write(json.dumps(return_data))
-            temp_file.close()
-            if not os.path.isfile(temp_file.name):
-                raise FileNotFoundError
+            fd, temp_file = tempfile.mkstemp('.json',
+                                             text=True,
+                                             dir=os.path.join(new_work_dir, 'tempdir'))
+            with open(temp_file, 'w') as fpw:
+                fpw.write(json.dumps(return_data))
 
-            return send_file(temp_file.name, as_attachment=True), 200
-
-        except FileNotFoundError:
-            return 204
+            return send_file(temp_file, as_attachment=True), 200
 
         except Exception as err:
             my_logger.error(f"{request.url} error: \n{err}",exc_info=True)
@@ -110,14 +105,12 @@ class CPUUsageToJson(Resource):
     def get(self):
         start = request.args.get('start_time')
         end = request.args.get('end_time')
+
         if not start or end:
             start = datetime.now()-timedelta(days=2)
             start = start.isoformat()
             end = datetime.now().isoformat()
 
-        temp_file = tempfile.NamedTemporaryFile(mode='w+t',
-                                                suffix='.json',
-                                                delete=False)
         try:
             if datetime.fromisoformat(start)>datetime.fromisoformat(end):
                 raise ValueError("Время начала периода позже его окончания")
@@ -128,15 +121,12 @@ class CPUUsageToJson(Resource):
         try:
             df = DataObject(start, end)
             return_data = df.get_cpu_usage()
-            temp_file.write(json.dumps(return_data))
-            temp_file.close()
-            if not os.path.isfile(temp_file.name):
-                raise FileNotFoundError
-
-            return send_file(temp_file.name, as_attachment=True), 200
-
-        except FileNotFoundError:
-            return 204
+            fd, temp_file = tempfile.mkstemp('.json',
+                                             text=True,
+                                             dir=os.path.join(new_work_dir, 'tempdir'))
+            with open(temp_file, 'w') as fpw:
+                fpw.write(json.dumps(return_data))
+            return send_file(temp_file, as_attachment=True), 200
 
         except Exception as err:
             my_logger.error(f"{request.url} error: \n{err}")
