@@ -4,12 +4,14 @@ import subprocess
 from datetime import datetime, timedelta
 from os import mkdir
 
+
 import psutil
 from flask import request, send_file
 from flask_restx import Resource, Namespace
 from flask_cors import cross_origin
 
-from env.default_env import PATH_TO_PYTHON_EXE, LOG_DIR, DOCKER_MODE, PATH_TO_PYTHON_LINUX
+from env.default_env import PATH_TO_PYTHON_EXE, LOG_DIR, DOCKER_MODE, PATH_TO_PYTHON_LINUX, RESPONSE_TEMP_DIR, \
+    NEW_WORK_DIR
 from stored_data_operation import DataObject
 
 from web_plugin.api_package.schemas import RUN_TELEMETRY_COLLECTION_SCHEMA_GET, STOP_TELEMETRY_COLLECTION_SCHEMA_GET, \
@@ -17,15 +19,15 @@ from web_plugin.api_package.schemas import RUN_TELEMETRY_COLLECTION_SCHEMA_GET, 
 
 from sys import platform, path
 import os
-new_work_dir = os.path.abspath(os.path.join(__file__, "../../.."))
-path.append(new_work_dir)
+
+path.append(NEW_WORK_DIR)
 
 from utils.custom_logger import CustomLogger
 
 log_file_name = "telemetry_ns.log"
 logger_instance = CustomLogger(logger_name="telemetry_ns",
                                 dt_fmt='%H:%M:%S',
-                                file_path=os.path.join(new_work_dir,LOG_DIR,log_file_name),
+                                file_path=os.path.join(LOG_DIR,log_file_name),
                                 level="debug")
 my_logger = logger_instance.logger
 
@@ -47,6 +49,7 @@ def get_python_path():
 
 telemetry_ns = Namespace('telemetry', description='access to host telemetry data')
 
+
 @telemetry_ns.route("/ram_usage_to_json")
 @telemetry_ns.doc(params={"start_time":{"description":"start of request period",
                                         "type": "str"},
@@ -54,9 +57,10 @@ telemetry_ns = Namespace('telemetry', description='access to host telemetry data
                                       "type": "str"}})
 class RAMUsageToJson(Resource):
     """return json file contained ram usage data with query in params"""
-    #TODO Удалять временный файл после отправки по запросу
+
     @cross_origin()
     @telemetry_ns.doc('return json file contained ram usage data')
+    # @temp_file_must_be_clean
     def get(self):
         start = request.args.get('start_time')
         end = request.args.get('end_time')
@@ -81,9 +85,14 @@ class RAMUsageToJson(Resource):
             return_data = df.get_ram_usage()
             fd, temp_file = tempfile.mkstemp('.json',
                                              text=True,
-                                             dir=os.path.join(new_work_dir, 'tempdir'))
+                                             dir=RESPONSE_TEMP_DIR)
+            my_logger.debug(
+                f'{__class__} return_data is :>>>>\n{json.dumps(return_data)[:40]}\n...\n{json.dumps(return_data)[-40:]}')
+
             with open(temp_file, 'w') as fpw:
                 fpw.write(json.dumps(return_data))
+
+            os.close(fd)
 
             return send_file(temp_file, as_attachment=True), 200
 
@@ -102,6 +111,7 @@ class CPUUsageToJson(Resource):
     #TODO Удалять временный файл после отправки по запросу
     @cross_origin()
     @telemetry_ns.doc('return json file contained cpu usage data')
+    # @temp_file_must_be_clean
     def get(self):
         start = request.args.get('start_time')
         end = request.args.get('end_time')
@@ -123,9 +133,13 @@ class CPUUsageToJson(Resource):
             return_data = df.get_cpu_usage()
             fd, temp_file = tempfile.mkstemp('.json',
                                              text=True,
-                                             dir=os.path.join(new_work_dir, 'tempdir'))
+                                             dir=RESPONSE_TEMP_DIR)
+
+            my_logger.debug(f'{__class__} return_data is :>>>>\n{json.dumps(return_data)[:40]}\n...\n{json.dumps(return_data)[-40:]}')
+
             with open(temp_file, 'w') as fpw:
                 fpw.write(json.dumps(return_data))
+
             return send_file(temp_file, as_attachment=True), 200
 
         except Exception as err:

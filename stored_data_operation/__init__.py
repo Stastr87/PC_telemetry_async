@@ -70,6 +70,7 @@ class DataObject:
         """Return cpu usage data from temp DataFrame"""
         df = self.get_temp_data_frame()
         cpu_df = df[['time', 'cpu_usage']]
+        my_logger.debug(f'{__class__} get_cpu_usage >>>\n {cpu_df.head(3)}')
         return cpu_df.values.tolist()
 
     def get_csv_data(self):

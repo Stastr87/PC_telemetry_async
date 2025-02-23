@@ -1,4 +1,5 @@
 """Common utils"""
+import re
 
 from json import JSONDecodeError, load
 from typing import Any, List
@@ -18,7 +19,7 @@ log_file_name = "common_utils.log"
 logger_instance = CustomLogger(logger_name="common_utils",
                                 dt_fmt='%H:%M:%S',
                                 file_path=os.path.join(new_work_dir,"logs", log_file_name),
-                                level="info")
+                                level="debug")
 my_logger = logger_instance.logger
 
 def load_json_from_file(file_path: str) -> Any:
@@ -49,6 +50,7 @@ def write_data_to_file(file_path: str, data: str) -> None:
             file.write(data)
 
 def clear_temp_data():
+    """Delete file pid.txt in tamp dir"""
     temp_file = os.path.join('tempdir', 'pid.txt')
     if os.path.isfile(temp_file):
         with open(temp_file, 'r') as pidfile:
@@ -59,3 +61,19 @@ def clear_temp_data():
             os.remove(os.path.join('tempdir', 'pid.txt'))
     except Exception as err:
         my_logger.debug(err)
+
+def temp_file_must_be_clean(func):
+    """Clean temp file deco for flask response with send_file option"""
+    def wrapper(*args):
+        """makes magic"""
+        resp = func(*args)
+        headers = resp[0].headers
+        cd = headers.getlist('Content-Disposition')
+        file_name = cd[0].split('; ')[1]
+        temp_file = re.sub('filename=', '', file_name)
+        abs_temp_file = os.path.join(os.getcwd(),'tempdir', temp_file)
+        with open (os.path.join(os.getcwd(),'tempdir','clean_file_list.txt'), 'a') as clean_file_list:
+            clean_file_list.write('\n'+abs_temp_file)
+
+        return resp
+    return wrapper
