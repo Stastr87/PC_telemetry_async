@@ -1,14 +1,12 @@
+"""Saving telemetry data to local path"""
+
 import sys
 
 import data_operation
 
-
-
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     while True:
         try:
             data_operation.init_collect_hw_data()
-        except KeyboardInterrupt:    #Без этой строчки код будет выполняться бесконечно при любом количестве ошибок
-            is_running=False
+        except KeyboardInterrupt:
             sys.exit(0)

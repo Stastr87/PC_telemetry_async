@@ -1,26 +1,16 @@
-# установка базового образа (host OS)
-FROM python:3.12
+FROM python:3.12.4-slim
 
-# Установка дополнительных пакетов
+COPY . /var/lib/pc_telemetry
+
+WORKDIR /var/lib/pc_telemetry
+
 RUN apt-get -y update && apt-get -y install nano && apt-get install -y tzdata
 
-# часовая зона по умолчанию
-ENV TZ=Europe/Samara
+RUN apt update && apt install -y --no-install-recommends make git
 
-# установка рабочей директории в контейнере (/code для примера, может быть любое другое имя)
-WORKDIR /code
+RUN pip3 install --upgrade pip \
+    && pip3 install 'pipenv==2024.0.1' \
+    && pipenv install --system \
+    && pipenv install --dev --system
 
-# копирование файла зависимостей в рабочую директорию
-COPY requirements.txt .
-
-# установка зависимостей
-RUN pip install -r requirements.txt
-
-# копирование содержимого локальной директории в рабочую директорию
-COPY / .
-
-# Делаем скрипт исполняемым
-RUN chmod a+x run.sh
-
-# команда, выполняемая при запуске контейнера
-CMD ["./run.sh"]
+ENV PYTHONPATH="/var/lib/pc_telemetry"

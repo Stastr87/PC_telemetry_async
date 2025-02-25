@@ -3,6 +3,15 @@
 import logging
 import os.path
 import sys
+from logging import Formatter
+
+
+def set_formatter(
+    fmt_str: str = "[%(asctime)s.%(msecs)03d] [%(levelname)s] %(message)s",
+    dt_fmt: str = "%Y-%m-%d %H:%M:%S",
+) -> Formatter:
+    """Return datetime formatter for future actions"""
+    return Formatter(fmt_str, datefmt=dt_fmt)
 
 
 class CustomLogger:
@@ -11,7 +20,7 @@ class CustomLogger:
 
     Настройки могут быть выполнены при вызове CustomLogger
     индивидуально для каждого модуля, либо...
-    Могут быть сохранены централизованно в ini файле (не путать с pytest.ini - это отдельный логер pytest)
+    Могут быть сохранены централизованно в ini файле
     Пример для импорта логера с централизованными настройками в модуль:
     ```
     import logging.configlogging.config.fileConfig('/path/to/logging.ini',
@@ -20,15 +29,15 @@ class CustomLogger:
     ```
     """
 
-    def __init__(self,
-                 logger_name: str,
-                 level: str = "DEBUG",
-                 formater_string: str = "[%(asctime)s.%(msecs)03d] [%(levelname)s] %(message)s",
-                 dt_fmt: str = '%Y-%m-%d %H:%M:%S',
-                 file_path: str = '',
-                 mode: str = 'w'):
+    def __init__(
+        self,
+        logger_name: str,
+        level: str = "DEBUG",
+        file_path: str = "",
+        mode: str = "w",
+    ):
         self.logger = logging.getLogger(logger_name)
-        self.formatter = logging.Formatter(formater_string, datefmt=dt_fmt)
+        self.formatter = set_formatter()
         self.level = level
         self.set_level()
         self.mode = mode
@@ -72,8 +81,8 @@ class CustomLogger:
             if not os.path.isdir(os.path.dirname(self.file_path)):
                 os.mkdir(os.path.dirname(self.file_path))
 
-            fh = logging.FileHandler(filename=self.file_path,
-                                     mode=self.mode,
-                                     encoding="utf-8")
+            fh = logging.FileHandler(
+                filename=self.file_path, mode=self.mode, encoding="utf-8"
+            )
             fh.setFormatter(self.formatter)
             self.logger.addHandler(fh)

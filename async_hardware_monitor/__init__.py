@@ -1,9 +1,14 @@
-from datetime import datetime
-import psutil
+"""Obtain hardware usage data of the host"""
+
 import asyncio
-# import time
+from datetime import datetime
+
+import psutil
+
 
 class HardWareMonitor:
+    """Define data object for future actions"""
+
     def __init__(self, monitor_period: int = 5):
         """Init HardWareMonitor object
 
@@ -17,70 +22,72 @@ class HardWareMonitor:
 
         # тут запускаются асинхронно функции которые требуют некоторое время для своего выполнения
         asyncio.run(self.wait_data())
-        
 
     def to_dict(self):
-        return {"ram_free":self.ram_free,
-                "cpu_usage":self.cpu_usage[0],
-                "network_usage":self.network_usage[0]}
+        """Define return data as dict"""
+        return {
+            "ram_free": self.ram_free,
+            "cpu_usage": self.cpu_usage[0],
+            "network_usage": self.network_usage[0],
+        }
 
-    
     async def wait_data(self):
-        """Запускает задачи, которые требуют времени ожидания"""
-        # Альтернативное решение
-        # tasks = []
-        # tasks.append(asyncio.create_task(self.get_network_usage()))
-        # tasks.append(asyncio.create_task(self.get_cpu_usage()))
-        # self.network_usage = await asyncio.gather(*tasks)
+        """Create tasks with collecting data"""
 
         get_network_usage_task = asyncio.create_task(self.get_network_usage())
         get_cpu_usage_task = asyncio.create_task(self.get_cpu_usage())
         self.network_usage = await asyncio.gather(get_network_usage_task)
         self.cpu_usage = await asyncio.gather(get_cpu_usage_task)
 
-    
     def set_ram_free(self):
-        """set ram_free class attribute
-        """
-        self.ram_free = psutil.virtual_memory().available * 100 / psutil.virtual_memory().total
-    
+        """set ram_free class attribute"""
+        self.ram_free = (
+            psutil.virtual_memory().available * 100 / psutil.virtual_memory().total
+        )
+
     async def get_cpu_usage(self):
-        """set cpu_usage class attribute
-        """
+        """set cpu_usage class attribute"""
 
-        # print(f"get_cpu_usage called {time.strftime('%X')}")
-        # Стативко потребления ЦП требует временного лага
-        # Получим данные по всем ядрам
+        # Need time lag to get CPU usage info
+        # to get info for all cores
 
-        cpu_usage = psutil.cpu_percent(interval=self.monitor_period,percpu=True)
-        # И вернем усредненное значение если ядро задействовано более чем на 2%
-        core_usage_list=[]
-        for i in range(len(cpu_usage)):
-            if cpu_usage[i] > 2:
-                core_usage_list.append(cpu_usage[i])
+        cpu_usage = psutil.cpu_percent(interval=self.monitor_period, percpu=True)
 
-        return sum(core_usage_list)/len(core_usage_list)
+        # return average value if core used more than 2%
+        core_usage_list = []
+        for cpu in cpu_usage:
+            if cpu > 2:
+                core_usage_list.append(cpu)
+
+        return sum(core_usage_list) / len(core_usage_list)
 
     async def get_network_usage(self):
-        """Задает атрибут класса - статистика передачи данных всех сетевых интерфейсов network_usage"""
-        # print(f"get_network_usage called {time.strftime('%X')}")
-        # Статистика сети
-        previous_state = {"data":psutil.net_io_counters(pernic=True),
-                          "timestamp":datetime.now()}
+        """Set class attribute - network_usage"""
+
+        previous_state = {
+            "data": psutil.net_io_counters(pernic=True),
+            "timestamp": datetime.now(),
+        }
         await asyncio.sleep(self.monitor_period)
-        # Обновим статистику сети
-        current_state = {"data":psutil.net_io_counters(pernic=True),
-                         "timestamp":datetime.now()}
-        network_usage = dict()
+        # Refresh network usage state
+        current_state = {
+            "data": psutil.net_io_counters(pernic=True),
+            "timestamp": datetime.now(),
+        }
+        network_usage = {}
         for adapter in current_state["data"]:
-            down_diff = getattr(current_state["data"][adapter], 'bytes_recv')-getattr(previous_state["data"][adapter], 'bytes_recv')
-            up_diff = getattr(current_state["data"][adapter], 'bytes_sent')-getattr(previous_state["data"][adapter], 'bytes_sent')
+            down_diff = getattr(current_state["data"][adapter], "bytes_recv") - getattr(
+                previous_state["data"][adapter], "bytes_recv"
+            )
+            up_diff = getattr(current_state["data"][adapter], "bytes_sent") - getattr(
+                previous_state["data"][adapter], "bytes_sent"
+            )
             time_diff = current_state["timestamp"] - previous_state["timestamp"]
             time_diff_in_seconds = time_diff.total_seconds()
-            # Подсчитали количество байт за указанный промежуток
+
+            # Count bytes for period
             down = down_diff / time_diff_in_seconds
             up = up_diff / time_diff_in_seconds
-            network_usage.update({adapter:{"up":up,
-                                           "down":down}})
+            network_usage.update({adapter: {"up": up, "down": down}})
 
         return network_usage
