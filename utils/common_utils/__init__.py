@@ -54,7 +54,7 @@ def write_data_to_file(file_path: str, data: str) -> None:
 def clear_temp_data():
     """Delete file pid.txt in tamp dir"""
 
-    pid = ""
+    pid = 0
     temp_file = os.path.join("tempdir", "pid.txt")
     if os.path.isfile(temp_file):
         with open(temp_file, "r", encoding="utf8") as pid_file:

@@ -1,0 +1,21 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "ad225733bbfffaff1fc0d22513cb17f33baf0d1b50750b6771ac1890a59152a8"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_full_version": "3.12.7",
+            "python_version": "3.12"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {},
+    "develop": {}
+}
