@@ -62,7 +62,7 @@ def get_python_path():
 
 def get_temp_file():
     """Return temp file object"""
-    if os.path.isdir(RESPONSE_TEMP_DIR):
+    if not os.path.isdir(RESPONSE_TEMP_DIR):
         mkdir(RESPONSE_TEMP_DIR)
     fldr, file_name = tempfile.mkstemp(".json", text=True, dir=RESPONSE_TEMP_DIR)
     return fldr, file_name
@@ -83,17 +83,16 @@ class RAMUsageToJson(Resource):
 
     @cross_origin()
     @telemetry_ns.doc("return json file contained ram usage data")
-    # @temp_file_must_be_clean
-    def get(self):
+    def get(self) -> tuple | None:
         """Define GET response"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
 
         if not start or not end:
-            start = datetime.now() - timedelta(days=1)
-            end = datetime.now()
-            start = start.isoformat()
-            end = end.isoformat()
+            start_dt = datetime.now() - timedelta(days=1)
+            end_dt = datetime.now()
+            start = start_dt.isoformat()
+            end = end_dt.isoformat()
 
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
@@ -113,7 +112,7 @@ class RAMUsageToJson(Resource):
 
             my_logger.debug(
                 "%s return_data is :>>>>\n%s\n...\n%s",
-                __class__,
+                "RAMUsageToJson",
                 json.dumps(return_data)[:40],
                 json.dumps(return_data)[-40:],
             )
@@ -133,7 +132,8 @@ class RAMUsageToJson(Resource):
 
         except ValueError as err:
             my_logger.error("%s error: \n%s", request.url, err, exc_info=True)
-            return 204
+            return {"message": err, "error": True}, 204
+        return None
 
 
 @telemetry_ns.route("/cpu_usage_to_json")
@@ -169,7 +169,7 @@ class CPUUsageToJson(Resource):
         try:
             df = DataObject(start, end)
             return_data = df.get_cpu_usage()
-            fd, temp_file = get_temp_file()
+            _, temp_file = get_temp_file()
 
             my_logger.debug(
                 "%s return_data is :>>>>\n%s\n...\n,%s",
@@ -178,7 +178,7 @@ class CPUUsageToJson(Resource):
                 json.dumps(return_data)[-40:],
             )
 
-            with open(temp_file, "w") as fpw:
+            with open(temp_file, "w", encoding="utf8") as fpw:
                 fpw.write(json.dumps(return_data))
 
             return send_file(temp_file, as_attachment=True), 200
@@ -200,25 +200,26 @@ class CPUUsage(Resource):
 
     @cross_origin()
     @telemetry_ns.doc("return cpu usage data")
-    def get(self):
+    def get(self) -> tuple | None:
         """Define GET return"""
-        start = request.args.get("start_time")
-        end = request.args.get("end_time")
+        start = str(request.args.get("start_time"))
+        end = str(request.args.get("end_time"))
 
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
-                raise ValueError("Время начала периода позже его окончания")
+                raise ValueError("Start older than End")
         except ValueError as val_err:
-            my_logger.error(f"{request.url} ValueError: \n{val_err}")
+            my_logger.error("%s ValueError: \n%s", request.url, val_err)
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
         try:
             df = DataObject(start, end)
-            return_data = df.get_cpu_usage()
-            return_body = return_data
+            return_body = str(df.get_cpu_usage())
             return return_body, 200
-        except Exception as err:
-            my_logger.error(f"{request.url} error: \n{err}")
+        except OSError as err:
+            my_logger.error("%s error: %s", request.url, err)
             telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
+
+        return None
 
 
 @telemetry_ns.route("/cpu_usage_data")
@@ -231,18 +232,18 @@ class CPUUsageData(Resource):
     @telemetry_ns.marshal_with(
         telemetry_ns.model("cpu_usage_data_response_schema", COMMON_RETURN_SCHEMA)
     )
-    def post(self):
+    def post(self) -> tuple | None:
         """Return cpu usage data for requested period"""
         request_data = request.get_json()
-        my_logger.debug(f"request_data: \n{request_data}")
+        my_logger.debug("request_data: \n%s", request_data)
         start = request_data.get("start_time")
         end = request_data.get("end_time")
 
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
-                raise ValueError("Время начала периода позже его окончания")
+                raise ValueError("Start older than End")
         except ValueError as val_err:
-            my_logger.error(f"{request.url} (POST) ValueError: \n{val_err}")
+            my_logger.error("%s (POST) ValueError: %s", request.url, val_err)
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
 
         try:
@@ -252,9 +253,10 @@ class CPUUsageData(Resource):
 
             return_body = {"message": "OK", "error": False, "data": return_data}
             return return_body, 200
-        except Exception as err:
-            my_logger.error(f"{request.url} (POST) error: \n{err}")
+        except OSError as err:
+            my_logger.error("%s (POST) error: %s", request.url, err)
             telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
+        return None
 
 
 @telemetry_ns.route("/return_hw_data")
@@ -271,10 +273,10 @@ class ReturnHWData(Resource):
             "return_hw_data_schema_schema_response", COMMON_RETURN_SCHEMA
         )
     )
-    def post(self):
+    def post(self) -> tuple | None:
         """Get hardware usage data for requested period"""
         request_data = request.get_json()
-        my_logger.debug(f"request_data: \n{request_data}")
+        my_logger.debug("request_data: \n%s", request_data)
         start = request_data.get("start_time")
         end = request_data.get("end_time")
 
@@ -282,7 +284,7 @@ class ReturnHWData(Resource):
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
                 raise ValueError("Время начала периода позже его окончания")
         except ValueError as val_err:
-            my_logger.error(f"{request.url} (POST) ValueError: \n{val_err}")
+            my_logger.error("%s (POST) ValueError: %s", request.url, val_err)
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
 
         try:
@@ -290,9 +292,11 @@ class ReturnHWData(Resource):
             return_data = tab.get_csv_data()
             return_body = {"message": "OK", "error": False, "data": return_data}
             return return_body, 200
-        except Exception as err:
-            my_logger.error(f"{request.url} (POST) error: \n{err}")
+        except OSError as err:
+            my_logger.error("%s (POST) error: %s", request.url, err)
             telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
+
+        return None
 
 
 @telemetry_ns.route("/run_telemetry_collection")
@@ -306,54 +310,39 @@ class RunTelemetryCollection(Resource):
             "run_telemetry_collection_schema_get", RUN_TELEMETRY_COLLECTION_SCHEMA_GET
         )
     )
-    def get(self):
+    def get(self) -> tuple | None:
         """starting collecting telemetry data"""
         try:
             python_path = get_python_path()
         except ValueError:
+            msg = """Collecting telemetry data fail. Docker mode enabled.
+             Use external telemetry collection lib"""
             return_body = {
-                "message": """Collecting telemetry data fail. \
-                Docker mode enabled. \
-                Use external telemetry collection lib""",
+                "message": msg,
                 "error": True,
                 "data": None,
             }
             return return_body, 405
 
         my_logger.debug(python_path)
-        proc = subprocess.Popen(
-            [python_path, "save_telemetry_data.py"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        my_logger.debug(f"{__class__} -> get() -> proc.pid: \n{proc.pid}")
-        return_data = proc.pid
 
-        # сохранить pid процесса, для последующего его закрытия
+        with subprocess.Popen([python_path, "save_telemetry_data.py"]) as proc:
+            my_logger.debug(
+                "%s -> get() -> proc.pid: %s", "RunTelemetryCollection", proc.pid
+            )
+
+            # save pid for future close
         if not os.path.isdir("tempdir"):
             mkdir("tempdir")
-        with open(os.path.join("tempdir", "pid.txt"), "w") as pidfile:
-            pidfile.write(str(return_data))
+        with open(os.path.join("tempdir", "pid.txt"), "w", encoding="utf8") as pidfile:
+            pidfile.write(str(proc.pid))
 
-        try:
-            stdout, stderr = proc.communicate(timeout=5)
-            my_logger.debug(f"{__class__} -> get() -> stdout: \n{stdout}")
-            if proc.stderr:
-                # handle error
-                error_msg = proc.stderr
-                my_logger.debug(f"{__class__} -> get() -> error_msg: \n{error_msg}")
-                telemetry_ns.abort(400, error_msg)
-
-        except subprocess.TimeoutExpired:
-            return_body = {
-                "message": "collecting telemetry data started",
-                "error": False,
-                "data": return_data,
-            }
-            return return_body, 201
-
-        except Exception as err:
-            telemetry_ns.abort(400, str(err))
+        return_body = {
+            "message": "collecting telemetry data started",
+            "error": False,
+            "data": proc.pid,
+        }
+        return return_body, 201
 
 
 @telemetry_ns.route("/stop_telemetry_collection")
@@ -367,30 +356,32 @@ class StopTelemetryCollection(Resource):
             "stop_telemetry_collection_schema_get", STOP_TELEMETRY_COLLECTION_SCHEMA_GET
         )
     )
-    def get(self):
+    def get(self) -> tuple | None:
         """stop collecting hardware usage data"""
         temp_file = os.path.join("tempdir", "pid.txt")
 
         if os.path.isfile(temp_file):
-            with open(temp_file, "r") as pidfile:
+            with open(temp_file, "r", encoding="utf8") as pidfile:
                 pid = int(pidfile.read())
         else:
             return_body = {"message": "process not exist", "error": True}
             return return_body, 200
         if psutil.pid_exists(pid):
             try:
-                # Закрываем процесс
+                # kill process
                 p = psutil.Process(pid)
                 p.terminate()
-                # Удаляем временный файл
+                # ...and delete temp file
                 os.remove(os.path.join("tempdir", "pid.txt"))
                 return_body = {
                     "message": f"process pid {pid} terminated",
                     "error": False,
                 }
                 return return_body, 200
-            except Exception as err:
+
+            except OSError as err:
                 telemetry_ns.abort(400, str(err))
         else:
             return_body = {"message": "process not exist", "error": True}
             return return_body, 204
+        return None

@@ -60,22 +60,22 @@ class DataObject:
         return_pd = result[result["pd_time"].between(start_moment, end_moment)]
         return return_pd
 
-    def get_ram_usage(self):
+    def get_ram_usage(self) -> list:
         """Return ram usage data from temp DataFrame"""
         df = self.get_temp_data_frame()
         ram_df = df[["time", "ram_free"]]
         return ram_df.values.tolist()
 
-    def get_cpu_usage(self):
+    def get_cpu_usage(self) -> list:
         """Return cpu usage data from temp DataFrame"""
         df = self.get_temp_data_frame()
         cpu_df = df[["time", "cpu_usage"]]
 
-        my_logger.debug("%s get_cpu_usage >>>\n %s", __class__, cpu_df.head(3))
+        my_logger.debug("%s get_cpu_usage >>>\n %s", "DataObject class", cpu_df.head(3))
 
         return cpu_df.values.tolist()
 
-    def get_csv_data(self):
+    def get_csv_data(self) -> str:
         """Return all hardware usage data according requested time period"""
         data_path = os.path.abspath(os.path.join(NEW_WORK_DIR, "telemetry"))
         dir_list = os.listdir(data_path)
