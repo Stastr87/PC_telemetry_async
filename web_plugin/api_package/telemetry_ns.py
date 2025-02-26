@@ -310,39 +310,54 @@ class RunTelemetryCollection(Resource):
             "run_telemetry_collection_schema_get", RUN_TELEMETRY_COLLECTION_SCHEMA_GET
         )
     )
+    # pylint: disable=R1732
     def get(self) -> tuple | None:
         """starting collecting telemetry data"""
         try:
             python_path = get_python_path()
         except ValueError:
-            msg = """Collecting telemetry data fail. Docker mode enabled.
-             Use external telemetry collection lib"""
             return_body = {
-                "message": msg,
+                "message": "collecting telemetry data fail. Docker mode enabled. \
+                Use external telemetry collection lib",
                 "error": True,
                 "data": None,
             }
             return return_body, 405
 
         my_logger.debug(python_path)
+        proc = subprocess.Popen(
+            [python_path, "save_telemetry_data.py"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        my_logger.debug("RunTelemetryCollection -> get() -> proc.pid: %s", proc.pid)
 
-        with subprocess.Popen([python_path, "save_telemetry_data.py"]) as proc:
-            my_logger.debug(
-                "%s -> get() -> proc.pid: %s", "RunTelemetryCollection", proc.pid
-            )
-
-            # save pid for future close
+        # сохранить pid процесса, для последующего его закрытия
         if not os.path.isdir("tempdir"):
             mkdir("tempdir")
         with open(os.path.join("tempdir", "pid.txt"), "w", encoding="utf8") as pidfile:
             pidfile.write(str(proc.pid))
 
-        return_body = {
-            "message": "collecting telemetry data started",
-            "error": False,
-            "data": proc.pid,
-        }
-        return return_body, 201
+        try:
+            stdout, stderr = proc.communicate(timeout=5)
+            my_logger.debug("RunTelemetryCollection -> get() -> stdout: \n%s", stdout)
+            if stderr:
+                # handle error
+                error_msg = stderr
+                my_logger.debug(
+                    "RunTelemetryCollection -> get() -> stderr: \n%s", stderr
+                )
+                telemetry_ns.abort(400, error_msg)
+
+        except subprocess.TimeoutExpired:
+            return_body = {
+                "message": "collecting telemetry data started",
+                "error": False,
+                "data": str(proc.pid),
+            }
+            return return_body, 201
+
+        return None
 
 
 @telemetry_ns.route("/stop_telemetry_collection")

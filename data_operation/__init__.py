@@ -25,7 +25,6 @@ def init_collect_hw_data():
 
     This code runs for 5 seconds, unless another value is passed to the HardWare Monitor() class
     Parameter monitor_period=5"""
-
     data = HardWareMonitor().to_dict()
     create_telemetry_data()
     update_telemetry_data_v2(data)
@@ -95,3 +94,4 @@ def update_telemetry_data_v2(data: dict, file_name: str = "data.csv"):
                     round(float(data["network_usage"][net_adaptor]["down"])),
                 ]
             )
+            # my_logger.debug("%s updated...", file_path)
