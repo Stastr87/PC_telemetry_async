@@ -1,3 +1,5 @@
+"""Define telemetry section in self doc service swagger"""
+
 import json
 import os
 import subprocess
@@ -30,10 +32,10 @@ from web_plugin.api_package.schemas import (
 
 path.append(NEW_WORK_DIR)
 
-log_file_name = "telemetry_ns.log"
+LOG_FILE_NAME = "telemetry_ns.log"
 logger_instance = CustomLogger(
     logger_name="telemetry_ns",
-    file_path=os.path.join(LOG_DIR, log_file_name),
+    file_path=os.path.join(LOG_DIR, LOG_FILE_NAME),
     level="debug",
 )
 my_logger = logger_instance.logger
@@ -44,19 +46,22 @@ def get_python_path():
     python_path = None
     if DOCKER_MODE:
         raise ValueError()
-    elif platform == "linux" or platform == "linux2":
+
+    if platform in ("linux", "linux2"):
         # Linux OS
         python_path = PATH_TO_PYTHON_LINUX
-    elif platform == "darwin":
+    if platform == "darwin":
         # MacOS
         python_path = PATH_TO_PYTHON_LINUX
-    elif platform == "win32":
+    if platform == "win32":
         # Windows
         python_path = PATH_TO_PYTHON_EXE
+
     return python_path
 
 
 def get_temp_file():
+    """Return temp file object"""
     if os.path.isdir(RESPONSE_TEMP_DIR):
         mkdir(RESPONSE_TEMP_DIR)
     fldr, file_name = tempfile.mkstemp(".json", text=True, dir=RESPONSE_TEMP_DIR)
@@ -80,6 +85,7 @@ class RAMUsageToJson(Resource):
     @telemetry_ns.doc("return json file contained ram usage data")
     # @temp_file_must_be_clean
     def get(self):
+        """Define GET response"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
 
@@ -94,7 +100,7 @@ class RAMUsageToJson(Resource):
                 raise ValueError("Время начала периода позже его окончания")
 
         except ValueError as val_err:
-            my_logger.error(f"{request.url} ValueError: \n{val_err}")
+            my_logger.error("%s ValueError: \n%s", request.url, val_err)
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
 
         try:
@@ -102,22 +108,32 @@ class RAMUsageToJson(Resource):
             df = DataObject(start, end)
             return_data = df.get_ram_usage()
 
+            if not return_data:
+                raise ValueError("Empty data")
+
             my_logger.debug(
-                f"{__class__} return_data is :>>>>\n{json.dumps(return_data)[:40]}\n...\n{json.dumps(return_data)[-40:]}"
+                "%s return_data is :>>>>\n%s\n...\n%s",
+                __class__,
+                json.dumps(return_data)[:40],
+                json.dumps(return_data)[-40:],
             )
 
             fd, temp_file = get_temp_file()
 
-            with open(temp_file, "w") as fpw:
+            with open(temp_file, "w", encoding="utf8") as fpw:
                 fpw.write(json.dumps(return_data))
 
             os.close(fd)
 
             return send_file(temp_file, as_attachment=True), 200
 
-        except Exception as err:
-            my_logger.error(f"{request.url} error: \n{err}", exc_info=True)
-            telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
+        except OSError as err:
+            my_logger.error("%s error: \n%s", request.url, err, exc_info=True)
+            telemetry_ns.abort(400, f"OSError problem occurred: {str(err)}")
+
+        except ValueError as err:
+            my_logger.error("%s error: \n%s", request.url, err, exc_info=True)
+            return 204
 
 
 @telemetry_ns.route("/cpu_usage_to_json")
@@ -134,6 +150,7 @@ class CPUUsageToJson(Resource):
     @telemetry_ns.doc("return json file contained cpu usage data")
     # @temp_file_must_be_clean
     def get(self):
+        """Define GET response"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
 
@@ -146,7 +163,7 @@ class CPUUsageToJson(Resource):
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
                 raise ValueError("Время начала периода позже его окончания")
         except ValueError as val_err:
-            my_logger.error(f"{request.url} ValueError: \n{val_err}")
+            my_logger.error("%s ValueError: \n%s", request.url, val_err)
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
 
         try:
@@ -155,7 +172,10 @@ class CPUUsageToJson(Resource):
             fd, temp_file = get_temp_file()
 
             my_logger.debug(
-                f"{__class__} return_data is :>>>>\n{json.dumps(return_data)[:40]}\n...\n{json.dumps(return_data)[-40:]}"
+                "%s return_data is :>>>>\n%s\n...\n,%s",
+                __class__,
+                json.dumps(return_data)[:40],
+                json.dumps(return_data)[-40:],
             )
 
             with open(temp_file, "w") as fpw:
@@ -163,9 +183,9 @@ class CPUUsageToJson(Resource):
 
             return send_file(temp_file, as_attachment=True), 200
 
-        except Exception as err:
-            my_logger.error(f"{request.url} error: \n{err}")
-            telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
+        except ValueError as err:
+            my_logger.error("%s error: \n%s", request.url, err, exc_info=True)
+            return 204
 
 
 @telemetry_ns.route("/cpu_usage")
@@ -181,6 +201,7 @@ class CPUUsage(Resource):
     @cross_origin()
     @telemetry_ns.doc("return cpu usage data")
     def get(self):
+        """Define GET return"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
 
@@ -291,7 +312,9 @@ class RunTelemetryCollection(Resource):
             python_path = get_python_path()
         except ValueError:
             return_body = {
-                "message": "collecting telemetry data fail. Docker mode enabled. Use external telemetry collection lib",
+                "message": """Collecting telemetry data fail. \
+                Docker mode enabled. \
+                Use external telemetry collection lib""",
                 "error": True,
                 "data": None,
             }
