@@ -310,6 +310,8 @@ class RunTelemetryCollection(Resource):
             "run_telemetry_collection_schema_get", RUN_TELEMETRY_COLLECTION_SCHEMA_GET
         )
     )
+    # доработать метод возвращающий результат запуска скрипта сохранения телеметрии
+    # with subprocess.Popen() as proc:....
     # pylint: disable=R1732
     def get(self) -> tuple | None:
         """starting collecting telemetry data"""

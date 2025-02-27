@@ -14,3 +14,12 @@ RUN pip3 install --upgrade pip \
     && pipenv install --dev --system
 
 ENV PYTHONPATH="/var/lib/pc_telemetry"
+
+# часовая зона по умолчанию
+ENV TZ=Europe/Samara
+
+# Делаем скрипт исполняемым
+RUN chmod a+x run.sh
+
+# команда, выполняемая при запуске контейнера
+CMD ["./run.sh"]

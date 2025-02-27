@@ -16,12 +16,12 @@ PATH_TO_PYTHON_EXE = os.path.join(
     "python.exe",
 )
 # PATH_TO_PYTHON_EXE = (
-#     'path for "python.exe" file for strating scrypts via api OS windows'
+#     'path for "python.exe" file for starting scripts via api OS windows'
 # )
 PATH_TO_PYTHON_LINUX = "python3"
 LOG_DIR = os.path.join(NEW_WORK_DIR, "logs")
-# Use False in production mode
-DEBUG_MODE = True
+# Use False for production
+DEBUG_MODE = False
 # Use True if production as Docker image
-DOCKER_MODE = False
+DOCKER_MODE = True
 RESPONSE_TEMP_DIR = os.path.join(NEW_WORK_DIR, "tempdir", "response_files")
