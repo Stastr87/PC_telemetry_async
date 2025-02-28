@@ -5,7 +5,7 @@ from flask_cors import CORS
 from waitress import serve
 
 from api_extension import swagger
-from env.default_env import DEBUG_MODE, API_PORT, API_HOST
+from env.default_env import API_HOST, API_PORT, DEBUG_MODE
 from utils.common_utils import clear_temp_data
 
 clear_temp_data()

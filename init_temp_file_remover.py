@@ -1,10 +1,12 @@
 """Init temp file remover module"""
-from datetime import datetime, timedelta
+
+import curses
 import sys
 import time
-import curses
+from datetime import datetime, timedelta
 
 from utils.temp_file_remover import del_temp_files
+
 
 def draw(canvas):
     """Define CLI interface with info"""
@@ -31,13 +33,16 @@ def draw(canvas):
                 start = datetime.now()
 
             # Разместим в окне терминала строки интерфейса
-            rows = ['Press ESC to Exit...',
-                    f'time remaining for next delete temp files {(timedelta(seconds=15) - (datetime.now() - start)).seconds} sec.',
-                    f'removed_files: {removed_files}',
-                    f'remove_file_error: {remove_file_error}']
+            count_down = (timedelta(seconds=15) - (datetime.now() - start)).seconds
+            rows = [
+                "Press ESC to Exit...",
+                f"for next delete temp files {count_down} sec.",
+                f"removed_files: {removed_files}",
+                f"remove_file_error: {remove_file_error}",
+            ]
 
             for i, row in enumerate(rows):
-                canvas.addstr(i + 1, main_offset,row)
+                canvas.addstr(i + 1, main_offset, row)
 
             canvas.refresh()
             # Холст обновляется с частотой 1Гц
@@ -50,12 +55,13 @@ def draw(canvas):
                 curses.echo()
                 # endwin - завершает сессию и возвращает в обычную консоль
                 curses.endwin()
-                print(f"EXIT")
+                print("EXIT")
                 sys.exit(0)
 
         except KeyboardInterrupt:
             pass
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     curses.update_lines_cols()
     curses.wrapper(draw)
