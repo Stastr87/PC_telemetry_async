@@ -25,3 +25,7 @@ DEBUG_MODE = False
 # Use True if production as Docker image
 DOCKER_MODE = True
 RESPONSE_TEMP_DIR = os.path.join(NEW_WORK_DIR, "tempdir", "response_files")
+
+API_HOST = "0.0.0.0"
+
+API_PORT = 5555

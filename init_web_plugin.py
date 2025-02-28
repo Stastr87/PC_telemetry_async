@@ -5,7 +5,7 @@ from flask_cors import CORS
 from waitress import serve
 
 from api_extension import swagger
-from env.default_env import DEBUG_MODE
+from env.default_env import DEBUG_MODE, API_PORT, API_HOST
 from utils.common_utils import clear_temp_data
 
 clear_temp_data()
@@ -22,6 +22,6 @@ app.config["JSON_SORT_KEYS"] = False
 
 if __name__ == "__main__":
     if DEBUG_MODE:
-        app.run("0.0.0.0", debug=True, port=5555)
+        app.run(API_HOST, debug=True, port=API_PORT)
     else:
-        serve(app, host="0.0.0.0", port=5555)
+        serve(app, host=API_HOST, port=API_PORT)
