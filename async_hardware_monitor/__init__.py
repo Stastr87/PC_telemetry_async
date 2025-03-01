@@ -51,18 +51,22 @@ class HardWareMonitor:
         # Need time lag to get CPU usage info
         # to get info for all cores
 
-        cpu_usage = psutil.cpu_percent(interval=self.monitor_period, percpu=True)
-
-        # return average value if core used more than 2%
-        core_usage_list = []
         try:
+            cpu_usage = psutil.cpu_percent(interval=self.monitor_period, percpu=True)
+            # return average value if core used more than 2%
+            core_usage_list = []
+
             for cpu in cpu_usage:
                 if cpu > 2:
                     core_usage_list.append(cpu)
             return sum(core_usage_list) / len(core_usage_list)
 
+        except KeyboardInterrupt:
+            pass
+
         except ZeroDivisionError:
             return 0
+
 
     async def get_network_usage(self):
         """Set class attribute - network_usage"""
