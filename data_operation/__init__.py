@@ -30,6 +30,20 @@ def init_collect_hw_data():
     update_telemetry_data_v2(data)
 
 
+def init_collect_hw_data_for_display():
+    """Saves a CSV file with data on PC resource consumption
+
+    This code runs for 5 seconds, unless another value is passed to the HardWare Monitor() class
+    Parameter monitor_period=5"""
+    try:
+        data = HardWareMonitor().to_dict()
+        create_telemetry_data()
+        update_telemetry_data_v2(data)
+        return data
+    except OSError as err:
+        return f"CSV update error: {err}"
+
+
 def create_telemetry_data(data_file="data.csv"):
     """Create empty csv file"""
     folder_name = os.path.abspath(

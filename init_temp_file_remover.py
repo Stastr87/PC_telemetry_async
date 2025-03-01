@@ -5,35 +5,30 @@ import sys
 import time
 from datetime import datetime, timedelta
 
+from env.default_env import CLEAR_TEMP_FOLDER_TIMEOUT
 from utils.temp_file_remover import del_temp_files
 
 
-def draw(canvas):
+def draw_file_remover(canvas):
     """Define CLI interface with info"""
 
-    curses.noecho()
-    curses.cbreak(True)
-    # Обновление холста будет работать автоматически без ожидания нажатий клавиш
-    canvas.nodelay(True)
-    # Отключить мигающий курсор
-    curses.curs_set(False)
     start = datetime.now()
     removed_files = []
     remove_file_error = []
     while True:
         try:
+            # Очистка холста
             canvas.clear()
-            main_offset = 2
-            canvas.refresh()
-            canvas.nodelay(True)
 
             # Запуск скрипта очистки временной директории
-            if datetime.now() - start > timedelta(seconds=15):
+            if datetime.now() - start > timedelta(seconds=CLEAR_TEMP_FOLDER_TIMEOUT):
                 removed_files, remove_file_error = del_temp_files()
                 start = datetime.now()
 
-            # Разместим в окне терминала строки интерфейса
-            count_down = (timedelta(seconds=15) - (datetime.now() - start)).seconds
+            # Размещение строк в интерфейсе
+            count_down = (
+                timedelta(seconds=CLEAR_TEMP_FOLDER_TIMEOUT) - (datetime.now() - start)
+            ).seconds
             rows = [
                 "Press ESC to Exit...",
                 f"for next delete temp files {count_down} sec.",
@@ -41,27 +36,35 @@ def draw(canvas):
                 f"remove_file_error: {remove_file_error}",
             ]
 
+            # Отступ от края для визуального восприятия
+            main_offset = 2
+            # Добавить обновленные строки на холст
             for i, row in enumerate(rows):
                 canvas.addstr(i + 1, main_offset, row)
 
             canvas.refresh()
+            # Перехват нажатия клавиши
+            if canvas.getch() == 27:
+                curses.endwin()
+                print("EXIT file_remover")
+                sys.exit(0)
+
             # Холст обновляется с частотой 1Гц
             time.sleep(1)
-
-            key = canvas.getch()
-            if key == 27:
-                curses.nocbreak()
-                canvas.keypad(False)
-                curses.echo()
-                # endwin - завершает сессию и возвращает в обычную консоль
-                curses.endwin()
-                print("EXIT")
-                sys.exit(0)
 
         except KeyboardInterrupt:
             pass
 
 
 if __name__ == "__main__":
-    curses.update_lines_cols()
-    curses.wrapper(draw)
+    stdscr = curses.initscr()
+    # Не показывать вводимые символы
+    curses.noecho()
+    # Активировать режим прерывания для возможности раеализация завершения программы
+    curses.cbreak()
+    # Обновление холста будет работать автоматически без ожидания нажатий клавиш
+    stdscr.nodelay(True)
+    # Отключить мигающий курсор
+    curses.curs_set(False)
+
+    curses.wrapper(draw_file_remover(stdscr))

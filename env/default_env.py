@@ -29,3 +29,6 @@ RESPONSE_TEMP_DIR = os.path.join(NEW_WORK_DIR, "tempdir", "response_files")
 API_HOST = "0.0.0.0"
 
 API_PORT = 5555
+
+# Периодичность очистки файлов в RESPONSE_TEMP_DIR
+CLEAR_TEMP_FOLDER_TIMEOUT = 15
