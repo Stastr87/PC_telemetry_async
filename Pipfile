@@ -12,3 +12,11 @@ flake8 = "==7.1.1"
 
 [requires]
 python_version = "3.12"
+
+[packages]
+flask-restx = "*"
+flask-cors = "*"
+psutil = "*"
+pandas = "*"
+windows-curses = "*"
+waitress = "*"
