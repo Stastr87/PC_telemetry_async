@@ -67,7 +67,6 @@ class HardWareMonitor:
         except ZeroDivisionError:
             return 0
 
-
     async def get_network_usage(self):
         """Set class attribute - network_usage"""
 
