@@ -47,11 +47,8 @@ def get_python_path():
     if DOCKER_MODE:
         raise ValueError()
 
-    if platform in ("linux", "linux2"):
-        # Linux OS
-        python_path = PATH_TO_PYTHON_LINUX
-    if platform == "darwin":
-        # MacOS
+    if platform in ("linux", "linux2", "darwin"):
+        # Linux, MacOS
         python_path = PATH_TO_PYTHON_LINUX
     if platform == "win32":
         # Windows
@@ -84,7 +81,7 @@ class RAMUsageToJson(Resource):
     @cross_origin()
     @telemetry_ns.doc("return json file contained ram usage data")
     def get(self) -> tuple | None:
-        """Define GET response"""
+        """GET request.Response return json file contained ram usage data with query in params"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
 
@@ -96,7 +93,7 @@ class RAMUsageToJson(Resource):
 
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
-                raise ValueError("Время начала периода позже его окончания")
+                raise ValueError("Stop is early than Start")
 
         except ValueError as val_err:
             my_logger.error("%s ValueError: \n%s", request.url, val_err)
@@ -121,7 +118,6 @@ class RAMUsageToJson(Resource):
 
             with open(temp_file, "w", encoding="utf8") as fpw:
                 fpw.write(json.dumps(return_data))
-
             os.close(fd)
 
             return send_file(temp_file, as_attachment=True), 200
@@ -150,7 +146,7 @@ class CPUUsageToJson(Resource):
     @telemetry_ns.doc("return json file contained cpu usage data")
     # @temp_file_must_be_clean
     def get(self):
-        """Define GET response"""
+        """GET request.Return json file contained cpu usage data with query in params"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
 
@@ -161,7 +157,7 @@ class CPUUsageToJson(Resource):
 
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
-                raise ValueError("Время начала периода позже его окончания")
+                raise ValueError("Stop is early than Start")
         except ValueError as val_err:
             my_logger.error("%s ValueError: \n%s", request.url, val_err)
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
@@ -169,7 +165,7 @@ class CPUUsageToJson(Resource):
         try:
             df = DataObject(start, end)
             return_data = df.get_cpu_usage()
-            _, temp_file = get_temp_file()
+            fd, temp_file = get_temp_file()
 
             my_logger.debug(
                 "%s return_data is :>>>>\n%s\n...\n,%s",
@@ -180,6 +176,7 @@ class CPUUsageToJson(Resource):
 
             with open(temp_file, "w", encoding="utf8") as fpw:
                 fpw.write(json.dumps(return_data))
+            os.close(fd)
 
             return send_file(temp_file, as_attachment=True), 200
 
@@ -201,7 +198,7 @@ class CPUUsage(Resource):
     @cross_origin()
     @telemetry_ns.doc("return cpu usage data")
     def get(self) -> tuple | None:
-        """Define GET return"""
+        """GET Request. Return cpu usage data with query in params"""
         start = str(request.args.get("start_time"))
         end = str(request.args.get("end_time"))
 
@@ -233,7 +230,7 @@ class CPUUsageData(Resource):
         telemetry_ns.model("cpu_usage_data_response_schema", COMMON_RETURN_SCHEMA)
     )
     def post(self) -> tuple | None:
-        """Return cpu usage data for requested period"""
+        """POST request with body. Return cpu usage data for requested period"""
         request_data = request.get_json()
         my_logger.debug("request_data: \n%s", request_data)
         start = request_data.get("start_time")
@@ -261,7 +258,7 @@ class CPUUsageData(Resource):
 
 @telemetry_ns.route("/return_hw_data")
 class ReturnHWData(Resource):
-    """Get hardware usage data"""
+    """Return  hardware usage CSV data for requested period"""
 
     @cross_origin()
     @telemetry_ns.doc("return_hw_data - info field")
@@ -274,7 +271,8 @@ class ReturnHWData(Resource):
         )
     )
     def post(self) -> tuple | None:
-        """Get hardware usage data for requested period"""
+        """POST request with params in body.
+        Return  hardware usage CSV data for requested period."""
         request_data = request.get_json()
         my_logger.debug("request_data: \n%s", request_data)
         start = request_data.get("start_time")
@@ -282,7 +280,7 @@ class ReturnHWData(Resource):
 
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
-                raise ValueError("Время начала периода позже его окончания")
+                raise ValueError("Stop is early than Start")
         except ValueError as val_err:
             my_logger.error("%s (POST) ValueError: %s", request.url, val_err)
             telemetry_ns.abort(400, f"ValueError {str(val_err)}")
