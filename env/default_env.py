@@ -7,8 +7,9 @@ NEW_WORK_DIR = os.path.abspath(os.path.join(__file__, "../.."))
 path.append(NEW_WORK_DIR)
 
 PATH_TO_PYTHON_EXE = (
-    'OS windows. path for "python.exe" file for starting scripts via api'
+    "C:\\Users\\ST\\.virtualenvs\\pc_telemetry_v2-eR3Ww-ah\\Scripts\\python.exe"
 )
+
 
 PATH_TO_PYTHON_LINUX = "python3"
 

@@ -1,6 +1,5 @@
 """Define telemetry section in self doc service swagger"""
 
-from contextlib import suppress
 import json
 import os
 import subprocess
@@ -24,11 +23,12 @@ from env.default_env import (
 )
 from stored_data_operation import DataObject
 from utils.custom_logger import CustomLogger
+from utils.exceptions import UtilException
 from web_plugin.api_package.schemas import (
+    COMMON_DATA_RETURN_SCHEMA,
     COMMON_RETURN_SCHEMA,
     PERIOD_REQUEST_DATA,
     RUN_TELEMETRY_COLLECTION_SCHEMA_GET,
-    STOP_TELEMETRY_COLLECTION_SCHEMA_GET,
 )
 
 path.append(NEW_WORK_DIR)
@@ -46,7 +46,7 @@ def get_python_path() -> str:
     """return python path according OS type"""
     python_path = ""
     if DOCKER_MODE:
-        raise ValueError()
+        return python_path
     if platform in ("linux", "linux2", "darwin"):
         # Linux, MacOS
         python_path = PATH_TO_PYTHON_LINUX
@@ -68,10 +68,24 @@ def get_temp_file() -> tuple:
 telemetry_ns = Namespace("telemetry", description="access to host telemetry data")
 
 
-def error_handler(e):
+def error_handler(e) -> tuple:
     """Catch error code for error response"""
-    return telemetry_ns.abort(400, f"Error handed! {e}")
+    response_body = {"message": f"{type(e).__name__} handed! {e}", "error": True}
+    return response_body, 400
 
+
+def get_pid() -> int:
+    """Return process id from temp file"""
+    pid = 0
+    try:
+        pid_file = os.path.join("tempdir", "pid.txt")
+
+        with open(pid_file, "r", encoding="utf8") as file:
+            pid = int(file.read())
+    except OSError as err:
+        my_logger.debug("No any pid file. %s", err)
+
+    return pid
 
 
 @telemetry_ns.route("/ram_usage_to_json")
@@ -86,7 +100,7 @@ class RAMUsageToJson(Resource):
 
     @cross_origin()
     @telemetry_ns.doc("return json file contained ram usage data")
-    def get(self) -> tuple | None:
+    def get(self) -> tuple:
         """Return json file contained ram usage data with query in params"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
@@ -97,7 +111,6 @@ class RAMUsageToJson(Resource):
             start = start_dt.isoformat()
             end = end_dt.isoformat()
 
-        return_data = ''
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
                 raise ValueError("Stop is early than Start")
@@ -114,14 +127,14 @@ class RAMUsageToJson(Resource):
 
             if not return_data:
                 raise ValueError("Empty data")
-        except (TypeError, KeyError, IndexError, ValueError) as err:
+
+            fd, temp_file = get_temp_file()
+            with open(temp_file, "w", encoding="utf8") as fpw:
+                fpw.write(json.dumps(return_data))
+            os.close(fd)
+
+        except (ValueError, OSError) as err:
             return error_handler(err)
-
-        fd, temp_file = get_temp_file()
-
-        with open(temp_file, "w", encoding="utf8") as fpw:
-            fpw.write(json.dumps(return_data))
-        os.close(fd)
 
         return send_file(temp_file, as_attachment=True), 200
 
@@ -139,44 +152,43 @@ class CPUUsageToJson(Resource):
     @cross_origin()
     @telemetry_ns.doc("return json file contained cpu usage data")
     # @temp_file_must_be_clean
-    def get(self):
+    def get(self) -> tuple:
         """Return json file contained cpu usage data with query in params"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
 
-        if not start or end:
-            start = datetime.now() - timedelta(days=2)
-            start = start.isoformat()
-            end = datetime.now().isoformat()
+        if not start or not end:
+            start_dt = datetime.now() - timedelta(days=1)
+            end_dt = datetime.now()
+            start = start_dt.isoformat()
+            end = end_dt.isoformat()
 
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
                 raise ValueError("Stop is early than Start")
-        except ValueError as val_err:
-            my_logger.error("%s ValueError: \n%s", request.url, val_err)
-            telemetry_ns.abort(400, f"ValueError {str(val_err)}")
 
-        try:
             df = DataObject(start, end)
             return_data = df.get_cpu_usage()
-            fd, temp_file = get_temp_file()
 
             my_logger.debug(
                 "%s return_data is :>>>>\n%s\n...\n,%s",
-                __class__,
+                "CPUUsageToJson",
                 json.dumps(return_data)[:40],
                 json.dumps(return_data)[-40:],
             )
 
+            if not return_data:
+                raise ValueError("Empty data")
+
+            fd, temp_file = get_temp_file()
             with open(temp_file, "w", encoding="utf8") as fpw:
                 fpw.write(json.dumps(return_data))
             os.close(fd)
 
-            return send_file(temp_file, as_attachment=True), 200
+        except (ValueError, OSError) as err:
+            return error_handler(err)
 
-        except ValueError as err:
-            my_logger.error("%s error: \n%s", request.url, err, exc_info=True)
-            return 204
+        return send_file(temp_file, as_attachment=True), 200
 
 
 @telemetry_ns.route("/cpu_usage")
@@ -191,7 +203,7 @@ class CPUUsage(Resource):
 
     @cross_origin()
     @telemetry_ns.doc("return cpu usage data")
-    def get(self) -> tuple | None:
+    def get(self) -> tuple:
         """Return cpu usage data with query in params"""
         start = str(request.args.get("start_time"))
         end = str(request.args.get("end_time"))
@@ -199,18 +211,17 @@ class CPUUsage(Resource):
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
                 raise ValueError("Start older than End")
-        except ValueError as val_err:
-            my_logger.error("%s ValueError: \n%s", request.url, val_err)
-            telemetry_ns.abort(400, f"ValueError {str(val_err)}")
-        try:
-            df = DataObject(start, end)
-            return_body = str(df.get_cpu_usage())
-            return return_body, 200
-        except OSError as err:
-            my_logger.error("%s error: %s", request.url, err)
-            telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
 
-        return None
+            df = DataObject(start, end)
+            if not df.get_cpu_usage():
+                raise ValueError("Empty data!")
+
+            return_body = str(df.get_cpu_usage())
+
+        except (ValueError, OSError) as err:
+            return error_handler(err)
+
+        return return_body, 200
 
 
 @telemetry_ns.route("/cpu_usage_data")
@@ -221,9 +232,9 @@ class CPUUsageData(Resource):
     @telemetry_ns.doc("return cpu usage data")
     @telemetry_ns.expect(telemetry_ns.model("cpu_usage_data_post", PERIOD_REQUEST_DATA))
     @telemetry_ns.marshal_with(
-        telemetry_ns.model("cpu_usage_data_response_schema", COMMON_RETURN_SCHEMA)
+        telemetry_ns.model("cpu_usage_data_response_schema", COMMON_DATA_RETURN_SCHEMA)
     )
-    def post(self) -> tuple | None:
+    def post(self) -> tuple:
         """Return cpu usage data for period."""
         request_data = request.get_json()
         my_logger.debug("request_data: \n%s", request_data)
@@ -233,21 +244,19 @@ class CPUUsageData(Resource):
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
                 raise ValueError("Start older than End")
-        except ValueError as val_err:
-            my_logger.error("%s (POST) ValueError: %s", request.url, val_err)
-            telemetry_ns.abort(400, f"ValueError {str(val_err)}")
-
-        try:
 
             df = DataObject(start, end)
-            return_data = df.get_cpu_usage()
 
+            if not df.get_cpu_usage():
+                raise ValueError("Empty data!")
+
+            return_data = df.get_cpu_usage()
             return_body = {"message": "OK", "error": False, "data": return_data}
-            return return_body, 200
-        except OSError as err:
-            my_logger.error("%s (POST) error: %s", request.url, err)
-            telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
-        return None
+
+        except (ValueError, OSError) as err:
+            return error_handler(err)
+
+        return return_body, 200
 
 
 @telemetry_ns.route("/csv_data")
@@ -260,7 +269,7 @@ class CSVData(Resource):
         telemetry_ns.model("csv_data_schema_post", PERIOD_REQUEST_DATA)
     )
     @telemetry_ns.marshal_with(
-        telemetry_ns.model("csv_data_schema_response", COMMON_RETURN_SCHEMA)
+        telemetry_ns.model("csv_data_schema_response", COMMON_DATA_RETURN_SCHEMA)
     )
     def post(self) -> tuple | None:
         """Return  hardware usage CSV data for requested period."""
@@ -272,20 +281,18 @@ class CSVData(Resource):
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
                 raise ValueError("Stop is early than Start")
-        except ValueError as val_err:
-            my_logger.error("%s (POST) ValueError: %s", request.url, val_err)
-            telemetry_ns.abort(400, f"ValueError {str(val_err)}")
 
-        try:
             tab = DataObject(start, end)
-            return_data = tab.get_csv_data()
-            return_body = {"message": "OK", "error": False, "data": return_data}
-            return return_body, 200
-        except OSError as err:
-            my_logger.error("%s (POST) error: %s", request.url, err)
-            telemetry_ns.abort(400, f"Another problem occurred: {str(err)}")
 
-        return None
+            if not tab.get_csv_data():
+                raise ValueError("Empty data!")
+
+            return_body = {"message": "OK", "error": False, "data": tab.get_csv_data()}
+
+        except ValueError as err:
+            return error_handler(err)
+
+        return return_body, 200
 
 
 @telemetry_ns.route("/run_telemetry_collection")
@@ -302,53 +309,56 @@ class RunTelemetryCollection(Resource):
     # доработать метод возвращающий результат запуска скрипта сохранения телеметрии
     # with subprocess.Popen() as proc:....
     # pylint: disable=R1732
-    def get(self) -> tuple | None:
+    def get(self) -> tuple:
         """starting collecting telemetry data"""
+        pid = get_pid()
+        python_path = get_python_path()
         try:
-            python_path = get_python_path()
-        except ValueError:
-            return_body = {
-                "message": "collecting telemetry data fail. Docker mode enabled. \
-                Use external telemetry collection lib",
-                "error": True,
-                "data": None,
-            }
-            return return_body, 405
+            if pid != 0:
+                raise ValueError("Telemetry process already exist")
 
-        my_logger.debug(python_path)
-        proc = subprocess.Popen(
-            [python_path, "save_telemetry_data.py"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        my_logger.debug("RunTelemetryCollection -> get() -> proc.pid: %s", proc.pid)
+            if not python_path:
+                raise ValueError("Docker mode is enabled. Use external telemetry lib")
 
-        # сохранить pid процесса, для последующего его закрытия
-        if not os.path.isdir("tempdir"):
-            mkdir("tempdir")
-        with open(os.path.join("tempdir", "pid.txt"), "w", encoding="utf8") as pidfile:
-            pidfile.write(str(proc.pid))
+            if not os.path.isfile(python_path):
+                raise FileNotFoundError("Python interpreter not found")
 
-        try:
+            proc = subprocess.Popen(
+                [python_path, "save_telemetry_data.py"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            pid = proc.pid
+            my_logger.debug("RunTelemetryCollection -> get() -> proc.pid: %s", pid)
+
+            # сохранить pid процесса, для последующего его закрытия
+            if not os.path.isdir("tempdir"):
+                mkdir("tempdir")
+            with open(
+                os.path.join("tempdir", "pid.txt"), "w", encoding="utf8"
+            ) as pidfile:
+                pidfile.write(str(pid))
+
             stdout, stderr = proc.communicate(timeout=5)
             my_logger.debug("RunTelemetryCollection -> get() -> stdout: \n%s", stdout)
             if stderr:
-                # handle error
-                error_msg = stderr
-                my_logger.debug(
-                    "RunTelemetryCollection -> get() -> stderr: \n%s", stderr
-                )
-                telemetry_ns.abort(400, error_msg)
+                raise UtilException(stderr)
+
+            return_body: dict[str, str | bool] = {}
+            if not return_body:
+                raise UtilException("Process start fail.")
 
         except subprocess.TimeoutExpired:
             return_body = {
                 "message": "collecting telemetry data started",
                 "error": False,
-                "data": str(proc.pid),
+                "data": str(pid),
             }
-            return return_body, 201
 
-        return None
+        except (ValueError, UtilException, FileNotFoundError) as err:
+            return error_handler(err)
+
+        return return_body, 201
 
 
 @telemetry_ns.route("/stop_telemetry_collection")
@@ -358,36 +368,29 @@ class StopTelemetryCollection(Resource):
     @cross_origin()
     @telemetry_ns.doc("stop_telemetry_collection - info field")
     @telemetry_ns.marshal_with(
-        telemetry_ns.model(
-            "stop_telemetry_collection_schema_get", STOP_TELEMETRY_COLLECTION_SCHEMA_GET
-        )
+        telemetry_ns.model("stop_telemetry_collection_schema_get", COMMON_RETURN_SCHEMA)
     )
-    def get(self) -> tuple | None:
+    def get(self) -> tuple:
         """stop collecting hardware usage data"""
-        temp_file = os.path.join("tempdir", "pid.txt")
+        try:
+            pid = get_pid()
+            if pid == 0:
+                return {"message": "pid file not found", "error": True}, 200
 
-        if os.path.isfile(temp_file):
-            with open(temp_file, "r", encoding="utf8") as pidfile:
-                pid = int(pidfile.read())
-        else:
-            return_body = {"message": "process not exist", "error": True}
-            return return_body, 200
-        if psutil.pid_exists(pid):
-            try:
-                # kill process
-                p = psutil.Process(pid)
-                p.terminate()
-                # ...and delete temp file
-                os.remove(os.path.join("tempdir", "pid.txt"))
-                return_body = {
-                    "message": f"process pid {pid} terminated",
-                    "error": False,
-                }
-                return return_body, 200
+            if not psutil.pid_exists(pid):
+                raise OSError(f"Process {pid} not exist")
 
-            except OSError as err:
-                telemetry_ns.abort(400, str(err))
-        else:
-            return_body = {"message": "process not exist", "error": True}
-            return return_body, 204
-        return None
+            # kill process
+            p = psutil.Process(pid)
+            p.terminate()
+            # ...and delete temp file
+            os.remove(os.path.join("tempdir", "pid.txt"))
+            return_body = {
+                "message": f"process pid {pid} terminated",
+                "error": False,
+            }
+
+        except OSError as err:
+            return error_handler(err)
+
+        return return_body, 200
