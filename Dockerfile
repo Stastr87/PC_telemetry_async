@@ -6,6 +6,9 @@ WORKDIR /var/lib/pc_telemetry
 
 RUN apt-get -y update && apt-get -y install nano && apt-get install -y tzdata
 
+# часовая зона по умолчанию
+ENV TZ=Europe/Samara
+
 RUN apt update && apt install -y --no-install-recommends make git
 
 RUN pip3 install --upgrade pip \
@@ -15,11 +18,5 @@ RUN pip3 install --upgrade pip \
 
 ENV PYTHONPATH="/var/lib/pc_telemetry"
 
-# часовая зона по умолчанию
-ENV TZ=Europe/Samara
-
-# Делаем скрипт исполняемым
-RUN chmod a+x run.sh
-
-# команда, выполняемая при запуске контейнера
-CMD ["./run.sh"]
+# Запуск веб плагина и очистка временных файлов
+RUN python3 ./init_web_plugin.py && python3 ./init_temp_file_remover.py

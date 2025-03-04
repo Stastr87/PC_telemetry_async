@@ -7,6 +7,7 @@ from curses import wrapper
 from datetime import datetime, timezone
 
 import data_operation
+from utils.curses import init_curses
 
 
 def draw_telemetry_data(canvas):
@@ -47,23 +48,7 @@ def draw_telemetry_data(canvas):
             display_result = data_operation.init_collect_hw_data_for_display()
 
         except KeyboardInterrupt:
-            pass
-
-
-def init_curses():
-    """Init curses object"""
-
-    # Инициализация библиотеки. Создает виртуальный экран
-    stdscr = curses.initscr()
-    # Не показывать вводимые символы
-    curses.noecho()
-    # Активировать режим прерывания для возможности раеализация завершения программы
-    curses.cbreak()
-    # Отключить мигающий курсор
-    curses.curs_set(False)
-    # Обновление холста будет работать автоматически без ожидания нажатий клавиш
-    stdscr.nodelay(True)
-    return stdscr
+            print("Abort Keyboard Interrupt. Press ESC for exit")
 
 
 if __name__ == "__main__":

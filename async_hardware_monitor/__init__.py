@@ -23,7 +23,7 @@ class HardWareMonitor:
         # тут запускаются асинхронно функции которые требуют некоторое время для своего выполнения
         asyncio.run(self.wait_data())
 
-    def to_dict(self):
+    def get_hw_usage_data(self):
         """Define return data as dict"""
         return {
             "ram_free": self.ram_free,

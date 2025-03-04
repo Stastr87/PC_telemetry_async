@@ -1,5 +1,6 @@
 """Define telemetry section in self doc service swagger"""
 
+from contextlib import suppress
 import json
 import os
 import subprocess
@@ -41,12 +42,11 @@ logger_instance = CustomLogger(
 my_logger = logger_instance.logger
 
 
-def get_python_path():
+def get_python_path() -> str:
     """return python path according OS type"""
-    python_path = None
+    python_path = ""
     if DOCKER_MODE:
         raise ValueError()
-
     if platform in ("linux", "linux2", "darwin"):
         # Linux, MacOS
         python_path = PATH_TO_PYTHON_LINUX
@@ -57,7 +57,7 @@ def get_python_path():
     return python_path
 
 
-def get_temp_file():
+def get_temp_file() -> tuple:
     """Return temp file object"""
     if not os.path.isdir(RESPONSE_TEMP_DIR):
         mkdir(RESPONSE_TEMP_DIR)
@@ -68,6 +68,12 @@ def get_temp_file():
 telemetry_ns = Namespace("telemetry", description="access to host telemetry data")
 
 
+def error_handler(e):
+    """Catch error code for error response"""
+    return telemetry_ns.abort(400, f"Error handed! {e}")
+
+
+
 @telemetry_ns.route("/ram_usage_to_json")
 @telemetry_ns.doc(
     params={
@@ -76,12 +82,12 @@ telemetry_ns = Namespace("telemetry", description="access to host telemetry data
     }
 )
 class RAMUsageToJson(Resource):
-    """return json file contained ram usage data with query in params"""
+    """HTTP method described in self doc interface swagger"""
 
     @cross_origin()
     @telemetry_ns.doc("return json file contained ram usage data")
     def get(self) -> tuple | None:
-        """GET request.Response return json file contained ram usage data with query in params"""
+        """Return json file contained ram usage data with query in params"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
 
@@ -91,21 +97,13 @@ class RAMUsageToJson(Resource):
             start = start_dt.isoformat()
             end = end_dt.isoformat()
 
+        return_data = ''
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
                 raise ValueError("Stop is early than Start")
 
-        except ValueError as val_err:
-            my_logger.error("%s ValueError: \n%s", request.url, val_err)
-            telemetry_ns.abort(400, f"ValueError {str(val_err)}")
-
-        try:
-
             df = DataObject(start, end)
             return_data = df.get_ram_usage()
-
-            if not return_data:
-                raise ValueError("Empty data")
 
             my_logger.debug(
                 "%s return_data is :>>>>\n%s\n...\n%s",
@@ -114,22 +112,18 @@ class RAMUsageToJson(Resource):
                 json.dumps(return_data)[-40:],
             )
 
-            fd, temp_file = get_temp_file()
+            if not return_data:
+                raise ValueError("Empty data")
+        except (TypeError, KeyError, IndexError, ValueError) as err:
+            return error_handler(err)
 
-            with open(temp_file, "w", encoding="utf8") as fpw:
-                fpw.write(json.dumps(return_data))
-            os.close(fd)
+        fd, temp_file = get_temp_file()
 
-            return send_file(temp_file, as_attachment=True), 200
+        with open(temp_file, "w", encoding="utf8") as fpw:
+            fpw.write(json.dumps(return_data))
+        os.close(fd)
 
-        except OSError as err:
-            my_logger.error("%s error: \n%s", request.url, err, exc_info=True)
-            telemetry_ns.abort(400, f"OSError problem occurred: {str(err)}")
-
-        except ValueError as err:
-            my_logger.error("%s error: \n%s", request.url, err, exc_info=True)
-            return {"message": err, "error": True}, 204
-        return None
+        return send_file(temp_file, as_attachment=True), 200
 
 
 @telemetry_ns.route("/cpu_usage_to_json")
@@ -140,13 +134,13 @@ class RAMUsageToJson(Resource):
     }
 )
 class CPUUsageToJson(Resource):
-    """return json file contained cpu usage data with query in params"""
+    """HTTP method described in self doc interface swagger"""
 
     @cross_origin()
     @telemetry_ns.doc("return json file contained cpu usage data")
     # @temp_file_must_be_clean
     def get(self):
-        """GET request.Return json file contained cpu usage data with query in params"""
+        """Return json file contained cpu usage data with query in params"""
         start = request.args.get("start_time")
         end = request.args.get("end_time")
 
@@ -193,12 +187,12 @@ class CPUUsageToJson(Resource):
     }
 )
 class CPUUsage(Resource):
-    """return cpu usage data with query in params"""
+    """HTTP method described in self doc interface swagger"""
 
     @cross_origin()
     @telemetry_ns.doc("return cpu usage data")
     def get(self) -> tuple | None:
-        """GET Request. Return cpu usage data with query in params"""
+        """Return cpu usage data with query in params"""
         start = str(request.args.get("start_time"))
         end = str(request.args.get("end_time"))
 
@@ -221,7 +215,7 @@ class CPUUsage(Resource):
 
 @telemetry_ns.route("/cpu_usage_data")
 class CPUUsageData(Resource):
-    """return cpu usage data"""
+    """HTTP method described in self doc interface swagger"""
 
     @cross_origin()
     @telemetry_ns.doc("return cpu usage data")
@@ -230,7 +224,7 @@ class CPUUsageData(Resource):
         telemetry_ns.model("cpu_usage_data_response_schema", COMMON_RETURN_SCHEMA)
     )
     def post(self) -> tuple | None:
-        """POST request with body. Return cpu usage data for requested period"""
+        """Return cpu usage data for period."""
         request_data = request.get_json()
         my_logger.debug("request_data: \n%s", request_data)
         start = request_data.get("start_time")
@@ -256,23 +250,20 @@ class CPUUsageData(Resource):
         return None
 
 
-@telemetry_ns.route("/return_hw_data")
-class ReturnHWData(Resource):
-    """Return  hardware usage CSV data for requested period"""
+@telemetry_ns.route("/csv_data")
+class CSVData(Resource):
+    """HTTP method described in self doc interface swagger"""
 
     @cross_origin()
-    @telemetry_ns.doc("return_hw_data - info field")
+    @telemetry_ns.doc("csv_data - info field")
     @telemetry_ns.expect(
-        telemetry_ns.model("return_hw_data_schema_post", PERIOD_REQUEST_DATA)
+        telemetry_ns.model("csv_data_schema_post", PERIOD_REQUEST_DATA)
     )
     @telemetry_ns.marshal_with(
-        telemetry_ns.model(
-            "return_hw_data_schema_schema_response", COMMON_RETURN_SCHEMA
-        )
+        telemetry_ns.model("csv_data_schema_response", COMMON_RETURN_SCHEMA)
     )
     def post(self) -> tuple | None:
-        """POST request with params in body.
-        Return  hardware usage CSV data for requested period."""
+        """Return  hardware usage CSV data for requested period."""
         request_data = request.get_json()
         my_logger.debug("request_data: \n%s", request_data)
         start = request_data.get("start_time")
@@ -299,7 +290,7 @@ class ReturnHWData(Resource):
 
 @telemetry_ns.route("/run_telemetry_collection")
 class RunTelemetryCollection(Resource):
-    """Start collecting telemetry data"""
+    """HTTP method described in self doc interface swagger"""
 
     @cross_origin()
     @telemetry_ns.doc("run_telemetry_collection - info field")
@@ -362,7 +353,7 @@ class RunTelemetryCollection(Resource):
 
 @telemetry_ns.route("/stop_telemetry_collection")
 class StopTelemetryCollection(Resource):
-    """StopTelemetryCollection"""
+    """HTTP method described in self doc interface swagger"""
 
     @cross_origin()
     @telemetry_ns.doc("stop_telemetry_collection - info field")
