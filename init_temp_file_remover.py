@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 
 from env.default_env import CLEAR_TEMP_FOLDER_TIMEOUT
+from utils.curses import init_curses
 from utils.temp_file_remover import del_temp_files
 
 
@@ -36,7 +37,7 @@ def draw_file_remover(canvas):
                 f"remove_file_error: {remove_file_error}",
             ]
 
-            # Отступ от края для визуального восприятия
+            # Отступ от края для лучшего визуального восприятия
             main_offset = 2
             # Добавить обновленные строки на холст
             for i, row in enumerate(rows):
@@ -53,18 +54,9 @@ def draw_file_remover(canvas):
             time.sleep(1)
 
         except KeyboardInterrupt:
-            pass
+            print("Abort Keyboard Interrupt. Press ESC for exit")
 
 
 if __name__ == "__main__":
-    stdscr = curses.initscr()
-    # Не показывать вводимые символы
-    curses.noecho()
-    # Активировать режим прерывания для возможности раеализация завершения программы
-    curses.cbreak()
-    # Обновление холста будет работать автоматически без ожидания нажатий клавиш
-    stdscr.nodelay(True)
-    # Отключить мигающий курсор
-    curses.curs_set(False)
-
-    curses.wrapper(draw_file_remover(stdscr))
+    canvas_obj = init_curses()
+    curses.wrapper(draw_file_remover(canvas_obj))
