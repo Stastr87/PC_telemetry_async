@@ -18,5 +18,5 @@ RUN pip3 install --upgrade pip \
 
 ENV PYTHONPATH="/var/lib/pc_telemetry"
 
-# Запуск веб плагина и очистка временных файлов
-RUN python3 ./init_web_plugin.py && python3 ./init_temp_file_remover.py
+# Запуск веб плагина
+CMD ["python3", "./init_web_plugin_multi_threads.py"]

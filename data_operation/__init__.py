@@ -20,7 +20,17 @@ logger_instance = CustomLogger(
 my_logger = logger_instance.logger
 
 
-def init_collect_hw_data_for_display() -> str:
+def init_collect_hw_data() -> None:
+    """Saves a CSV file with data on PC resource consumption
+
+    This code runs for 5 seconds, unless another value is passed to the HardWare Monitor() class
+    Parameter monitor_period=5
+    """
+    data = HardWareMonitor().get_hw_usage_data()
+    update_telemetry_data_v2(data)
+
+
+def init_collect_hw_data_for_display() -> str | None:
     """Saves a CSV file with data on PC resource consumption
 
     This code runs for 5 seconds, unless another value is passed to the HardWare Monitor() class
@@ -28,12 +38,10 @@ def init_collect_hw_data_for_display() -> str:
 
     return str for display result
     """
-    try:
-        data = HardWareMonitor().get_hw_usage_data()
-        update_telemetry_data_v2(data)
-        return data
-    except OSError as err:
-        return f"CSV update error: {err}"
+
+    data = HardWareMonitor().get_hw_usage_data()
+    update_telemetry_data_v2(data)
+    return data
 
 
 def create_telemetry_data(file_path):

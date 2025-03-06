@@ -1,56 +1,36 @@
-"""Saving telemetry data to local path"""
+"""Collect telemetry data"""
 
-import curses
-import socket
-import sys
-from curses import wrapper
-from datetime import datetime, timezone
+import threading
+import time
+
+import keyboard
 
 import data_operation
-from utils.curses import init_curses
 
 
-def draw_telemetry_data(canvas):
-    """Define CLI interface with info"""
-    display_result = "NO DATA"
+def collect_data():
+    """Collect hardware usage data"""
+    print("collect_data started")
     while True:
-        try:
-            # Очистка холста
-            canvas.clear()
+        data = data_operation.init_collect_hw_data_for_display()
+        print(data)
 
-            # Размещение строк в интерфейсе
-            cur_date_time = (
-                datetime.now(timezone.utc).astimezone().strftime("%d-%m-%Y %H:%M:%S %z")
-            )
 
-            rows = [
-                "Press ESC to Exit...",
-                f"Host name: {socket.gethostname()}",
-                f"Current date/time {cur_date_time}",
-                f"{display_result}",
-            ]
-            # Отступ от края для визуального восприятия
-            offset = 2
-
-            # Добавить обновленные строки на холст
-            for i, row in enumerate(rows):
-                canvas.addstr(i + 1, offset, row)
-
-            canvas.refresh()
-            # Перехват нажатия клавиши
-            if canvas.getch() == 27:
-                # endwin - завершает сессию и возвращает в обычную консоль
-                curses.endwin()
-                print("EXIT saving telemetry data")
-                sys.exit()
-
-            # Код выполняется 5 сек. Частота обновления экрана 0,2 Гц
-            display_result = data_operation.init_collect_hw_data_for_display()
-
-        except KeyboardInterrupt:
-            print("Abort Keyboard Interrupt. Press ESC for exit")
+def wait_key():
+    """Wait key process"""
+    while True:
+        print("Press q for exit")  # making a loop
+        if keyboard.is_pressed("q"):  # if key 'q' is pressed
+            print("Exit program!")
+            break  # finishing the loop
+        time.sleep(1)
 
 
 if __name__ == "__main__":
-    canvas_obj = init_curses()
-    wrapper(draw_telemetry_data(canvas_obj))
+
+    q = threading.Thread(target=wait_key)
+    q.start()
+
+    cd = threading.Thread(target=collect_data)
+    cd.daemon = True
+    cd.start()

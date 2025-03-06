@@ -6,9 +6,7 @@ from sys import path
 NEW_WORK_DIR = os.path.abspath(os.path.join(__file__, "../.."))
 path.append(NEW_WORK_DIR)
 
-PATH_TO_PYTHON_EXE = (
-    'OS windows. path for "python.exe" file for starting scripts via api'
-)
+PATH_TO_PYTHON_EXE = ""
 
 PATH_TO_PYTHON_LINUX = "python3"
 

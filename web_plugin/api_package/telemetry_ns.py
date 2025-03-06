@@ -72,7 +72,7 @@ def error_handler(e, http_code: int = 400) -> tuple:
     """Catch error code for error response"""
     response_body = {"message": f"{type(e).__name__} handed! {e}", "error": True}
 
-    if str(e)=="Empty data":
+    if str(e) == "Empty data":
         http_code = 204
 
     return response_body, http_code
