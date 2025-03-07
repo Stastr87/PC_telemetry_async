@@ -7,7 +7,7 @@ from flask_cors import CORS
 from waitress import serve
 
 from api_extension import swagger
-from env.default_env import API_HOST, API_PORT, DEBUG_MODE
+from env.default_env import API_HOST, API_PORT, DEBUG_MODE, DOCKER_MODE
 from temp_file_remover_daemon import file_remover
 from utils.key_input import key_for_exit
 
@@ -33,10 +33,15 @@ def start_wsgi_server():
 if __name__ == "__main__":
     if DEBUG_MODE:
         start_flask_app()
+    elif DOCKER_MODE:
+        wsgi_server_thread = threading.Thread(target=start_wsgi_server)
+        wsgi_server_thread.start()
+        wsgi_server_thread_id = wsgi_server_thread.native_id
+        print(f"wsgi_server started proc id: {wsgi_server_thread_id}")
+
     else:
         q = threading.Thread(target=key_for_exit)
         q.start()
-
         wsgi_server_thread = threading.Thread(target=start_wsgi_server)
         wsgi_server_thread.daemon = True
         wsgi_server_thread.start()

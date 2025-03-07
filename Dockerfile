@@ -19,4 +19,4 @@ RUN pip3 install --upgrade pip \
 ENV PYTHONPATH="/var/lib/pc_telemetry"
 
 # Запуск веб плагина
-CMD ["python3", "./init_web_plugin_multi_threads.py"]
+CMD ["python3", "./init_web_plugin.py"]
