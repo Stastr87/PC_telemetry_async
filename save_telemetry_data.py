@@ -1,11 +1,9 @@
 """Collect telemetry data"""
 
 import threading
-import time
-
-import keyboard
 
 import data_operation
+from utils.key_input import key_for_exit
 
 
 def collect_data():
@@ -16,19 +14,9 @@ def collect_data():
         print(data)
 
 
-def wait_key():
-    """Wait key process"""
-    while True:
-        print("Press q for exit")  # making a loop
-        if keyboard.is_pressed("q"):  # if key 'q' is pressed
-            print("Exit program!")
-            break  # finishing the loop
-        time.sleep(1)
-
-
 if __name__ == "__main__":
 
-    q = threading.Thread(target=wait_key)
+    q = threading.Thread(target=key_for_exit)
     q.start()
 
     cd = threading.Thread(target=collect_data)
