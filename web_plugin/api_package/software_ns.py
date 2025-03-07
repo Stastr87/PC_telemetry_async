@@ -26,10 +26,10 @@ soft_ns = Namespace(
 
 @soft_ns.route("/hello")
 class Hello(Resource):
-    """Get hardware usage data"""
+    """api request template"""
 
     @cross_origin()
     @soft_ns.doc("hello - info field")
     def get(self):
-        """starting collecting telemetry data"""
+        """GET request template"""
         return "Hello", 200

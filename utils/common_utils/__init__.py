@@ -1,7 +1,6 @@
 """Common utils"""
 
 import os
-import re
 import sys
 from json import JSONDecodeError, load
 from typing import Any, List
@@ -65,26 +64,3 @@ def clear_temp_data():
             os.remove(os.path.join("tempdir", "pid.txt"))
     except OSError as err:
         my_logger.debug(err)
-
-
-def temp_file_must_be_clean(func):
-    """Clean temp file deco for flask response with send_file option"""
-
-    def wrapper(*args):
-        """makes magic"""
-        resp = func(*args)
-        headers = resp[0].headers
-        cd = headers.getlist("Content-Disposition")
-        file_name = cd[0].split("; ")[1]
-        temp_file = re.sub("filename=", "", file_name)
-        abs_temp_file = os.path.join(os.getcwd(), "tempdir", temp_file)
-        with open(
-            os.path.join(os.getcwd(), "tempdir", "clean_file_list.txt"),
-            "a",
-            encoding="utf8",
-        ) as clean_file_list:
-            clean_file_list.write("\n" + abs_temp_file)
-
-        return resp
-
-    return wrapper
