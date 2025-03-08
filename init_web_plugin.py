@@ -33,6 +33,7 @@ def start_wsgi_server():
 if __name__ == "__main__":
     if DEBUG_MODE:
         start_flask_app()
+
     elif DOCKER_MODE:
         wsgi_server_thread = threading.Thread(target=start_wsgi_server)
         wsgi_server_thread.start()
