@@ -91,6 +91,93 @@ def get_pid() -> int:
 
     return pid
 
+@telemetry_ns.route("/get_net_adapters")
+@telemetry_ns.doc(
+    params={
+        "start_time": {"description": "start of request period", "type": "str"},
+        "end_time": {"description": "end of request period", "type": "str"}
+    }
+)
+class NetAdapters(Resource):
+    """HTTP method described in self doc interface swagger"""
+    #TODO Отловить случаи когда запрос возвращает ошибки
+    @cross_origin()
+    @telemetry_ns.doc("return list of net adapters")
+    @telemetry_ns.marshal_with(
+        telemetry_ns.model("common_data_return_schema", COMMON_DATA_RETURN_SCHEMA)
+    )
+    def get(self) -> tuple:
+        """Return list of net adapters contained in local db"""
+        start = request.args.get("start_time")
+        end = request.args.get("end_time")
+
+        if not start or not end:
+            start_dt = datetime.now() - timedelta(days=1)
+            end_dt = datetime.now()
+            start = start_dt.isoformat()
+            end = end_dt.isoformat()
+
+        try:
+            if datetime.fromisoformat(start) > datetime.fromisoformat(end):
+                raise ValueError("Stop is early than Start")
+
+            df = DataObject(start, end)
+            return_data = df.get_net_adapter_list()
+
+            if not return_data:
+                raise ValueError("Empty data")
+
+
+        except (ValueError, OSError) as err:
+            return error_handler(err)
+
+        return {"data":return_data, "error": False, "message":"OK"}, 200
+
+@telemetry_ns.route("/net_adapter_usage")
+@telemetry_ns.doc(
+    params={
+        "start_time": {"description": "start of request period", "type": "str"},
+        "end_time": {"description": "end of request period", "type": "str"},
+        "net_adapter_name": {"description": "stored net adapter name", "type": "str"}
+    }
+)
+class NetAdapterUsage(Resource):
+    """HTTP method described in self doc interface swagger"""
+    # TODO отловить ошибки когда запрос возвращает ошибки
+    @cross_origin()
+    @telemetry_ns.doc("return json file contained net adapter usage data")
+    def get(self) -> tuple:
+        """Return json file contained net adapter usage data with query in params"""
+        start = request.args.get("start_time")
+        end = request.args.get("end_time")
+        net_adapter_name = request.args.get("net_adapter_name")
+
+        if not start or not end:
+            start_dt = datetime.now() - timedelta(days=1)
+            end_dt = datetime.now()
+            start = start_dt.isoformat()
+            end = end_dt.isoformat()
+
+        try:
+            if datetime.fromisoformat(start) > datetime.fromisoformat(end):
+                raise ValueError("Stop is early than Start")
+
+            df = DataObject(start, end, net_adapter_name)
+            return_data = df.get_network_usage_data()
+
+            if not return_data:
+                raise ValueError("Empty data")
+
+            fd, temp_file = get_temp_file()
+            with open(temp_file, "w", encoding="utf8") as fpw:
+                fpw.write(json.dumps(return_data))
+            os.close(fd)
+
+        except (ValueError, OSError) as err:
+            return error_handler(err)
+
+        return send_file(temp_file, as_attachment=True), 200
+
 
 @telemetry_ns.route("/ram_usage_to_json")
 @telemetry_ns.doc(
@@ -121,13 +208,6 @@ class RAMUsageToJson(Resource):
 
             df = DataObject(start, end)
             return_data = df.get_ram_usage()
-
-            my_logger.debug(
-                "%s return_data is :>>>>\n%s\n...\n%s",
-                "RAMUsageToJson",
-                json.dumps(return_data)[:40],
-                json.dumps(return_data)[-40:],
-            )
 
             if not return_data:
                 raise ValueError("Empty data")
@@ -173,13 +253,6 @@ class CPUUsageToJson(Resource):
 
             df = DataObject(start, end)
             return_data = df.get_cpu_usage()
-
-            my_logger.debug(
-                "%s return_data is :>>>>\n%s\n...\n,%s",
-                "CPUUsageToJson",
-                json.dumps(return_data)[:40],
-                json.dumps(return_data)[-40:],
-            )
 
             if not return_data:
                 raise ValueError("Empty data")
@@ -234,9 +307,9 @@ class CPUUsageData(Resource):
 
     @cross_origin()
     @telemetry_ns.doc("return cpu usage data")
-    @telemetry_ns.expect(telemetry_ns.model("cpu_usage_data_post", PERIOD_REQUEST_DATA))
+    @telemetry_ns.expect(telemetry_ns.model("period_request_data", PERIOD_REQUEST_DATA))
     @telemetry_ns.marshal_with(
-        telemetry_ns.model("cpu_usage_data_response_schema", COMMON_DATA_RETURN_SCHEMA)
+        telemetry_ns.model("common_data_return_schema", COMMON_DATA_RETURN_SCHEMA)
     )
     def post(self) -> tuple:
         """Return cpu usage data for period."""
@@ -270,10 +343,10 @@ class CSVData(Resource):
     @cross_origin()
     @telemetry_ns.doc("csv_data - info field")
     @telemetry_ns.expect(
-        telemetry_ns.model("csv_data_schema_post", PERIOD_REQUEST_DATA)
+        telemetry_ns.model("period_request_data", PERIOD_REQUEST_DATA)
     )
     @telemetry_ns.marshal_with(
-        telemetry_ns.model("csv_data_schema_response", COMMON_DATA_RETURN_SCHEMA)
+        telemetry_ns.model("common_data_return_schema", COMMON_DATA_RETURN_SCHEMA)
     )
     def post(self) -> tuple:
         """Return  hardware usage CSV data for requested period."""
@@ -372,7 +445,7 @@ class StopTelemetryCollection(Resource):
     @cross_origin()
     @telemetry_ns.doc("stop_telemetry_collection - info field")
     @telemetry_ns.marshal_with(
-        telemetry_ns.model("stop_telemetry_collection_schema_get", COMMON_RETURN_SCHEMA)
+        telemetry_ns.model("common_return_schema", COMMON_RETURN_SCHEMA)
     )
     def get(self) -> tuple:
         """stop collecting hardware usage data"""

@@ -26,11 +26,12 @@ my_logger = logger_instance.logger
 class DataObject:
     """Define data object for future actions"""
 
-    def __init__(self, start_time: str, end_time: str):
+    def __init__(self, start_time: str, end_time: str, net_adapter: str = ''):
         self.start_time = start_time
         self.end_time = end_time
         self._dt_start = datetime.fromisoformat(self.start_time)
         self._dt_end = datetime.fromisoformat(self.end_time)
+        self.net_adapter = net_adapter
 
     def get_temp_data_frame(self) -> DataFrame:
         """Return temp data frame according requested time period"""
@@ -59,6 +60,20 @@ class DataObject:
         end_moment = self.end_time
         return_pd = result[result["pd_time"].between(start_moment, end_moment)]
         return return_pd
+
+    def get_net_adapter_list(self) -> list:
+        """Return list of net adapters, stored in csv"""
+        df = self.get_temp_data_frame()
+        unique_network_list_df = pd.unique(df["network_adapter"])
+        return unique_network_list_df.tolist()
+
+    def get_network_usage_data(self) -> list:
+        """Return upload and download bitrate"""
+        df = self.get_temp_data_frame()
+        network_df = df[["time", "network_adapter", "net_usage_up", "net_usage_down"]]
+        if self.net_adapter:
+            network_df = network_df[network_df["network_adapter"]==self.net_adapter]
+        return network_df.values.tolist()
 
     def get_ram_usage(self) -> list:
         """Return ram usage data from temp DataFrame"""
