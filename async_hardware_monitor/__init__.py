@@ -15,15 +15,15 @@ class HardWareMonitor:
         Arguments:
         monitor_period - period (sec) to check hardware usage (default = 5)"""
         self.monitor_period = monitor_period
-        self.ram_free = None
+        self.ram_free = ""
         self.set_ram_free()
-        self.cpu_usage = None
-        self.network_usage = None
+        self.cpu_usage = ""
+        self.network_usage = ""
 
         # тут запускаются асинхронно функции которые требуют некоторое время для своего выполнения
         asyncio.run(self.wait_data())
 
-    def get_hw_usage_data(self):
+    def get_hw_usage_data(self) -> dict:
         """Define return data as dict"""
         return {
             "ram_free": self.ram_free,

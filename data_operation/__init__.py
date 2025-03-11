@@ -30,7 +30,7 @@ def init_collect_hw_data() -> None:
     update_telemetry_data_v2(data)
 
 
-def init_collect_hw_data_for_display() -> str | None:
+def init_collect_hw_data_for_display() -> dict:
     """Saves a CSV file with data on PC resource consumption
 
     This code runs for 5 seconds, unless another value is passed to the HardWare Monitor() class

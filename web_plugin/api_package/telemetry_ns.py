@@ -91,16 +91,17 @@ def get_pid() -> int:
 
     return pid
 
+
 @telemetry_ns.route("/get_net_adapters")
 @telemetry_ns.doc(
     params={
         "start_time": {"description": "start of request period", "type": "str"},
-        "end_time": {"description": "end of request period", "type": "str"}
+        "end_time": {"description": "end of request period", "type": "str"},
     }
 )
 class NetAdapters(Resource):
     """HTTP method described in self doc interface swagger"""
-    #TODO Отловить случаи когда запрос возвращает ошибки
+
     @cross_origin()
     @telemetry_ns.doc("return list of net adapters")
     @telemetry_ns.marshal_with(
@@ -127,23 +128,23 @@ class NetAdapters(Resource):
             if not return_data:
                 raise ValueError("Empty data")
 
-
         except (ValueError, OSError) as err:
             return error_handler(err)
 
-        return {"data":return_data, "error": False, "message":"OK"}, 200
+        return {"data": return_data, "error": False, "message": "OK"}, 200
+
 
 @telemetry_ns.route("/net_adapter_usage")
 @telemetry_ns.doc(
     params={
         "start_time": {"description": "start of request period", "type": "str"},
         "end_time": {"description": "end of request period", "type": "str"},
-        "net_adapter_name": {"description": "stored net adapter name", "type": "str"}
+        "net_adapter_name": {"description": "stored net adapter name", "type": "str"},
     }
 )
 class NetAdapterUsage(Resource):
     """HTTP method described in self doc interface swagger"""
-    # TODO отловить ошибки когда запрос возвращает ошибки
+
     @cross_origin()
     @telemetry_ns.doc("return json file contained net adapter usage data")
     def get(self) -> tuple:
@@ -161,6 +162,9 @@ class NetAdapterUsage(Resource):
         try:
             if datetime.fromisoformat(start) > datetime.fromisoformat(end):
                 raise ValueError("Stop is early than Start")
+
+            if not net_adapter_name:
+                raise ValueError("Empty net adapter name")
 
             df = DataObject(start, end, net_adapter_name)
             return_data = df.get_network_usage_data()
@@ -342,9 +346,7 @@ class CSVData(Resource):
 
     @cross_origin()
     @telemetry_ns.doc("csv_data - info field")
-    @telemetry_ns.expect(
-        telemetry_ns.model("period_request_data", PERIOD_REQUEST_DATA)
-    )
+    @telemetry_ns.expect(telemetry_ns.model("period_request_data", PERIOD_REQUEST_DATA))
     @telemetry_ns.marshal_with(
         telemetry_ns.model("common_data_return_schema", COMMON_DATA_RETURN_SCHEMA)
     )
