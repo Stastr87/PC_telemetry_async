@@ -67,10 +67,12 @@ class DataObject:
         unique_network_list_df = pd.unique(df["network_adapter"])
         return unique_network_list_df.tolist()
 
-    def get_network_usage_data(self) -> list:
+    def get_network_usage_data(self, rate: float = 1) -> list:
         """Return upload and download bitrate"""
         df = self.get_temp_data_frame()
         network_df = df[["time", "network_adapter", "net_usage_up", "net_usage_down"]]
+        network_df["net_usage_up"] = network_df["net_usage_up"]*rate
+        network_df["net_usage_down"] = network_df["net_usage_down"]*rate
         if self.net_adapter:
             network_df = network_df[network_df["network_adapter"] == self.net_adapter]
         return network_df.values.tolist()

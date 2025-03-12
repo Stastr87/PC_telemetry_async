@@ -140,6 +140,7 @@ class NetAdapters(Resource):
         "start_time": {"description": "start of request period", "type": "str"},
         "end_time": {"description": "end of request period", "type": "str"},
         "net_adapter_name": {"description": "stored net adapter name", "type": "str"},
+        "data_rate": {"description": "Use mbps or empty", "type": "str"}
     }
 )
 class NetAdapterUsage(Resource):
@@ -152,6 +153,12 @@ class NetAdapterUsage(Resource):
         start = request.args.get("start_time")
         end = request.args.get("end_time")
         net_adapter_name = request.args.get("net_adapter_name")
+        data_rate = request.args.get("data_rate")
+
+        if data_rate == 'mbps':
+            ratio = 0.000008
+        else:
+            ratio = 1
 
         if not start or not end:
             start_dt = datetime.now() - timedelta(days=1)
@@ -167,7 +174,7 @@ class NetAdapterUsage(Resource):
                 raise ValueError("Empty net adapter name")
 
             df = DataObject(start, end, net_adapter_name)
-            return_data = df.get_network_usage_data()
+            return_data = df.get_network_usage_data(ratio)
 
             if not return_data:
                 raise ValueError("Empty data")
