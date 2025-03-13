@@ -38,9 +38,9 @@ class DataObject:
 
         data_path = os.path.abspath(os.path.join(NEW_WORK_DIR, "telemetry"))
         dir_list = os.listdir(data_path)
+
         # write data to temp data array
         temp_data = []
-
         for dir_name in dir_list:
             stored_date = datetime.strptime(dir_name, "%d-%m-%Y")
             # Find start date
@@ -55,7 +55,7 @@ class DataObject:
         # concat all DataFrames in temp array
         result = pd.concat(temp_data)
 
-        result["pd_time"] = pd.to_datetime(result["time"])
+        result["pd_time"] = pd.to_datetime(result["time"], format="mixed")
         start_moment = self.start_time
         end_moment = self.end_time
         return_pd = result[result["pd_time"].between(start_moment, end_moment)]
@@ -71,8 +71,8 @@ class DataObject:
         """Return upload and download bitrate"""
         df = self.get_temp_data_frame()
         network_df = df[["time", "network_adapter", "net_usage_up", "net_usage_down"]]
-        network_df["net_usage_up"] = network_df["net_usage_up"]*rate
-        network_df["net_usage_down"] = network_df["net_usage_down"]*rate
+        network_df["net_usage_up"] = network_df["net_usage_up"] * rate
+        network_df["net_usage_down"] = network_df["net_usage_down"] * rate
         if self.net_adapter:
             network_df = network_df[network_df["network_adapter"] == self.net_adapter]
         return network_df.values.tolist()

@@ -140,7 +140,7 @@ class NetAdapters(Resource):
         "start_time": {"description": "start of request period", "type": "str"},
         "end_time": {"description": "end of request period", "type": "str"},
         "net_adapter_name": {"description": "stored net adapter name", "type": "str"},
-        "data_rate": {"description": "Use mbps or empty", "type": "str"}
+        "data_rate": {"description": "Use mbps or empty", "type": "str"},
     }
 )
 class NetAdapterUsage(Resource):
@@ -155,7 +155,7 @@ class NetAdapterUsage(Resource):
         net_adapter_name = request.args.get("net_adapter_name")
         data_rate = request.args.get("data_rate")
 
-        if data_rate == 'mbps':
+        if data_rate == "mbps":
             ratio = 0.000008
         else:
             ratio = 1
