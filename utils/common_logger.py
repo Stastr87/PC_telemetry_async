@@ -1,3 +1,5 @@
+"""Define common logger"""
+
 import os
 
 from env.default_env import LOG_DIR
@@ -10,5 +12,3 @@ logger_instance = CustomLogger(
     level="debug",
 )
 common_logger = logger_instance.logger
-
-

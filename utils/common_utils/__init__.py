@@ -3,6 +3,8 @@
 import os
 import sys
 from json import JSONDecodeError, load
+from threading import Thread
+from traceback import print_exc
 from typing import Any, List
 
 import psutil
@@ -10,8 +12,6 @@ import psutil
 from env.default_env import NEW_WORK_DIR
 from utils.custom_logger import CustomLogger
 from utils.exceptions import UtilException
-from threading import Thread
-from traceback import print_exc
 
 sys.path.append(NEW_WORK_DIR)
 
@@ -27,18 +27,22 @@ common_utils_logger = logger_instance.logger
 class TestThread(Thread):
     """Customization of Thread class to run and handle possible exceptions"""
 
-    def __init__(self, name: str, func: Any, daemon: bool = False, *args, **kwargs):
+    def __init__(self, name: str, func: Any, *args, hello_msg: str = '' ,daemon: bool = False, **kwargs):
         super().__init__(name=name)
         self.func = func
         self.args = args
         self.kwargs = kwargs
         self.test_exception = False
         self.daemon = daemon
+        self.msg = hello_msg
 
     def run(self) -> None:
         """run method"""
 
-        common_utils_logger.info("%s started", self.func.__name__)
+        if self.msg:
+            common_utils_logger.info("%s: %s", self.func.__name__, self.msg)
+        else:
+            common_utils_logger.info("%s started", self.func.__name__)
 
         try:
             self.func(**self.kwargs)

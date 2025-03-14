@@ -17,11 +17,12 @@ def file_remover():
             removed_files, remove_file_error = del_temp_files()
             start = datetime.now()
             if removed_files:
-                common_logger.debug('removed_files: %s', removed_files)
+                common_logger.debug("removed_files: %s", removed_files)
             if remove_file_error:
-                common_logger.debug('remove_file_error: %s', remove_file_error)
+                common_logger.debug("remove_file_error: %s", remove_file_error)
 
         time.sleep(1)
+
 
 if __name__ == "__main__":
     file_remover()
