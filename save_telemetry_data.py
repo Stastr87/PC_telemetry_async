@@ -3,12 +3,12 @@
 import threading
 
 import data_operation
+from utils.common_utils import TestThread
 from utils.key_input import key_for_exit
 
 
 def collect_data():
     """Collect hardware usage data"""
-    print("collect_data started")
     while True:
         data = data_operation.init_collect_hw_data_for_display()
         print(data)
@@ -16,9 +16,8 @@ def collect_data():
 
 if __name__ == "__main__":
 
-    q = threading.Thread(target=key_for_exit)
-    q.start()
+    quit_thread = TestThread('key_for_exit', key_for_exit)
+    quit_thread.start()
 
-    cd = threading.Thread(target=collect_data)
-    cd.daemon = True
-    cd.start()
+    collect_data_thread = TestThread('collect_data', collect_data, daemon=True)
+    collect_data_thread.start()

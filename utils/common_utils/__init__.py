@@ -10,6 +10,8 @@ import psutil
 from env.default_env import NEW_WORK_DIR
 from utils.custom_logger import CustomLogger
 from utils.exceptions import UtilException
+from threading import Thread
+from traceback import print_exc
 
 sys.path.append(NEW_WORK_DIR)
 
@@ -19,7 +21,38 @@ logger_instance = CustomLogger(
     file_path=os.path.join(NEW_WORK_DIR, "logs", LOG_FILE_NAME),
     level="debug",
 )
-my_logger = logger_instance.logger
+common_utils_logger = logger_instance.logger
+
+
+class TestThread(Thread):
+    """Customization of Thread class to run and handle possible exceptions"""
+
+    def __init__(self, name: str, func: Any, daemon: bool = False, *args, **kwargs):
+        super().__init__(name=name)
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        self.test_exception = False
+        self.daemon = daemon
+
+    def run(self) -> None:
+        """run method"""
+
+        common_utils_logger.info("%s started", self.func.__name__)
+
+        try:
+            self.func(**self.kwargs)
+
+        except Exception as error:  # pylint: disable=W0718
+            self.test_exception = True
+            common_utils_logger.error(str(error), exc_info=True)
+            print_exc()
+
+    def join(self, timeout: float = None) -> None:
+        """Join method"""
+
+        super().join(timeout)
+        common_utils_logger.info("%s Thread join method.", self.name)
 
 
 def load_json_from_file(file_path: str) -> Any:
@@ -63,4 +96,4 @@ def clear_temp_data():
         if not psutil.pid_exists(pid):
             os.remove(os.path.join("tempdir", "pid.txt"))
     except OSError as err:
-        my_logger.debug(err)
+        common_utils_logger.debug(err)
