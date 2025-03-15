@@ -22,8 +22,9 @@ from env.default_env import (
     RESPONSE_TEMP_DIR,
 )
 from stored_data_operation import DataObject
-from utils.custom_logger import CustomLogger
+
 from utils.exceptions import UtilException
+from utils.logger.custom_logger import CustomLogger
 from web_plugin.api_package.schemas import (
     COMMON_DATA_RETURN_SCHEMA,
     COMMON_RETURN_SCHEMA,
@@ -39,7 +40,8 @@ logger_instance = CustomLogger(
     file_path=os.path.join(LOG_DIR, LOG_FILE_NAME),
     level="debug",
 )
-my_logger = logger_instance.logger
+
+telemetry_logger = logger_instance.logger
 
 
 def get_python_path() -> str:
@@ -87,7 +89,7 @@ def get_pid() -> int:
         with open(pid_file, "r", encoding="utf8") as file:
             pid = int(file.read())
     except OSError as err:
-        my_logger.debug("No any pid file. %s", err)
+        telemetry_logger.debug("No any pid file. %s", err)
 
     return pid
 
@@ -325,7 +327,7 @@ class CPUUsageData(Resource):
     def post(self) -> tuple:
         """Return cpu usage data for period."""
         request_data = request.get_json()
-        my_logger.debug("request_data: \n%s", request_data)
+        telemetry_logger.debug("request_data: \n%s", request_data)
         start = request_data.get("start_time")
         end = request_data.get("end_time")
 
@@ -360,7 +362,7 @@ class CSVData(Resource):
     def post(self) -> tuple:
         """Return  hardware usage CSV data for requested period."""
         request_data = request.get_json()
-        my_logger.debug("request_data: \n%s", request_data)
+        telemetry_logger.debug("request_data: \n%s", request_data)
         start = request_data.get("start_time")
         end = request_data.get("end_time")
 
@@ -415,7 +417,7 @@ class RunTelemetryCollection(Resource):
                 stderr=subprocess.PIPE,
             )
             pid = proc.pid
-            my_logger.debug("RunTelemetryCollection -> get() -> proc.pid: %s", pid)
+            telemetry_logger.debug("RunTelemetryCollection -> get() -> proc.pid: %s", pid)
 
             # сохранить pid процесса, для последующего его закрытия
             if not os.path.isdir("tempdir"):
@@ -426,7 +428,7 @@ class RunTelemetryCollection(Resource):
                 pidfile.write(str(pid))
 
             stdout, stderr = proc.communicate(timeout=5)
-            my_logger.debug("RunTelemetryCollection -> get() -> stdout: \n%s", stdout)
+            telemetry_logger.debug("RunTelemetryCollection -> get() -> stdout: \n%s", stdout)
             if stderr:
                 raise UtilException(stderr)
 

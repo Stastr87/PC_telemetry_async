@@ -7,7 +7,7 @@ from flask_cors import cross_origin
 from flask_restx import Namespace, Resource
 
 from env.default_env import NEW_WORK_DIR
-from utils.custom_logger import CustomLogger
+from utils.logger.custom_logger import CustomLogger
 
 sys.path.append(NEW_WORK_DIR)
 

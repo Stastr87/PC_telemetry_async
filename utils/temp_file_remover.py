@@ -1,9 +1,7 @@
 """Clean trash"""
 
 import os
-
 from env.default_env import RESPONSE_TEMP_DIR
-
 
 def del_temp_files():
     """Clean files saved as temp files as response data"""

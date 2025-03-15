@@ -1,15 +1,14 @@
 """Collect telemetry data"""
+
 import os
 from sys import path
-
-
-NEW_WORK_DIR = os.path.abspath(os.path.join(__file__, "../.."))
-path.append(NEW_WORK_DIR)
 
 import data_operation
 from utils.common_utils import TestThread
 from utils.key_input import key_for_exit
 
+NEW_WORK_DIR = os.path.abspath(os.path.join(__file__, "../.."))
+path.append(NEW_WORK_DIR)
 
 
 def collect_data():

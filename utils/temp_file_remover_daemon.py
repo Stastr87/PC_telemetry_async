@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timedelta
 
 from env.default_env import CLEAR_TEMP_FOLDER_TIMEOUT
-from utils.common_logger import common_logger
+from utils.logger.common_logger import common_logger
 from utils.temp_file_remover import del_temp_files
 
 

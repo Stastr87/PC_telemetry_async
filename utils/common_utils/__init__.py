@@ -10,8 +10,9 @@ from typing import Any, List
 import psutil
 
 from env.default_env import NEW_WORK_DIR
-from utils.custom_logger import CustomLogger
+
 from utils.exceptions import UtilException
+from utils.logger.custom_logger import CustomLogger
 
 sys.path.append(NEW_WORK_DIR)
 
@@ -27,7 +28,15 @@ common_utils_logger = logger_instance.logger
 class TestThread(Thread):
     """Customization of Thread class to run and handle possible exceptions"""
 
-    def __init__(self, name: str, func: Any, *args, hello_msg: str = '' ,daemon: bool = False, **kwargs):
+    def __init__(
+        self,
+        name: str,
+        func: Any,
+        *args,
+        hello_msg: str = "",
+        daemon: bool = False,
+        **kwargs,
+    ):
         super().__init__(name=name)
         self.func = func
         self.args = args

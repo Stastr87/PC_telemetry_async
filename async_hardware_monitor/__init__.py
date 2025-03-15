@@ -2,9 +2,7 @@
 
 import asyncio
 from datetime import datetime
-
 import psutil
-
 
 class HardWareMonitor:
     """Define data object for future actions"""

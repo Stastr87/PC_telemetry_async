@@ -8,7 +8,7 @@ from datetime import datetime
 
 from async_hardware_monitor import HardWareMonitor
 from env.default_env import NEW_WORK_DIR
-from utils.custom_logger import CustomLogger
+from utils.logger.custom_logger import CustomLogger
 
 sys.path.append(NEW_WORK_DIR)
 LOG_FILE_NAME = "data_operation.log"
@@ -17,7 +17,7 @@ logger_instance = CustomLogger(
     file_path=os.path.join(NEW_WORK_DIR, "logs", LOG_FILE_NAME),
     level="debug",
 )
-my_logger = logger_instance.logger
+do_logger = logger_instance.logger
 
 
 def init_collect_hw_data() -> None:

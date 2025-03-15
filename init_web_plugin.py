@@ -6,9 +6,9 @@ from waitress import serve
 
 from api_extension import swagger
 from env.default_env import API_HOST, API_PORT, DEBUG_MODE, DOCKER_MODE
-from utils.common_logger import common_logger
 from utils.common_utils import TestThread
 from utils.key_input import key_for_exit
+from utils.logger.common_logger import common_logger
 from utils.temp_file_remover_daemon import file_remover
 
 app = Flask(__name__)
@@ -26,7 +26,6 @@ def start_flask_app():
 
 def wsgi_server():
     """start wsgi server"""
-    common_logger.info("wsgi_server: %s:%s", API_HOST, API_PORT)
     serve(app, host=API_HOST, port=API_PORT)
 
 
@@ -36,14 +35,20 @@ if __name__ == "__main__":
 
     elif DOCKER_MODE:
         common_logger.warning("DOCKER_MODE is active")
-        wsgi_server_thread = TestThread("wsgi_server", wsgi_server)
+        wsgi_server_thread = TestThread(
+            "wsgi_server", wsgi_server, hello_msg=f"{API_HOST}:{API_PORT}"
+        )
         wsgi_server_thread.start()
 
     else:
-        quit_thread = TestThread("key_for_exit", key_for_exit, hello_msg='Press ESC for exit')
+        quit_thread = TestThread(
+            "key_for_exit", key_for_exit, hello_msg="Press ESC for exit"
+        )
         quit_thread.start()
 
-        wsgi_server_thread = TestThread("wsgi_server", wsgi_server, daemon=True)
+        wsgi_server_thread = TestThread(
+            "wsgi_server", wsgi_server, daemon=True, hello_msg=f"{API_HOST}:{API_PORT}"
+        )
         wsgi_server_thread.start()
 
     file_remover_t = TestThread("file_remover", file_remover, daemon=True)

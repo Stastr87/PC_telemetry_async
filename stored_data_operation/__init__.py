@@ -6,10 +6,9 @@ import sys
 from datetime import datetime
 
 import pandas as pd
-from pandas.core.interchange.dataframe_protocol import DataFrame
 
 from env.default_env import NEW_WORK_DIR
-from utils.custom_logger import CustomLogger
+from utils.logger.custom_logger import CustomLogger
 
 sys.path.append(NEW_WORK_DIR)
 
@@ -17,7 +16,7 @@ LOG_FILE_NAME = "stored_data_operation.log"
 logger_instance = CustomLogger(
     logger_name="stored_data_operation",
     file_path=os.path.join(NEW_WORK_DIR, "logs", LOG_FILE_NAME),
-    level="debug",
+    level="info",
 )
 
 sdo_logger = logger_instance.logger
@@ -33,7 +32,7 @@ class DataObject:
         self._dt_end = datetime.fromisoformat(self.end_time)
         self.net_adapter = net_adapter
 
-    def get_temp_data_frame(self) -> DataFrame:
+    def get_temp_data_frame(self) -> pd.DataFrame:
         """Return temp data frame according requested time period"""
 
         data_path = os.path.abspath(os.path.join(NEW_WORK_DIR, "telemetry"))
@@ -72,13 +71,18 @@ class DataObject:
         df = self.get_temp_data_frame()
 
         network_df = pd.DataFrame()
-        network_df["time"] = df.loc[:,"time"]
-        network_df["network_adapter"] = df.loc[:,"network_adapter"]
-        network_df["net_usage_up"] = df.loc[:,"net_usage_up"].astype('float64') * rate
-        network_df["net_usage_down"] = df.loc[:, "net_usage_down"].astype('float64') * rate
+        network_df["time"] = df.loc[:, "time"]
+        network_df["network_adapter"] = df.loc[:, "network_adapter"]
+        network_df["net_usage_up"] = df.loc[:, "net_usage_up"].astype("float64") * rate
+        network_df["net_usage_down"] = (
+            df.loc[:, "net_usage_down"].astype("float64") * rate
+        )
 
         if self.net_adapter:
             network_df = network_df[network_df["network_adapter"] == self.net_adapter]
+
+        sdo_logger.debug(network_df.head(3))
+
         return network_df.values.tolist()
 
     def get_ram_usage(self) -> list:
@@ -92,7 +96,9 @@ class DataObject:
         df = self.get_temp_data_frame()
         cpu_df = df[["time", "cpu_usage"]]
 
-        sdo_logger.debug("%s get_cpu_usage >>>\n %s", "DataObject class", cpu_df.head(3))
+        sdo_logger.debug(
+            "%s get_cpu_usage >>>\n %s", "DataObject class", cpu_df.head(3)
+        )
 
         return cpu_df.values.tolist()
 
